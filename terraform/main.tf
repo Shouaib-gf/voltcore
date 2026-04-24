@@ -56,9 +56,9 @@ resource "proxmox_virtual_environment_vm" "client_vm" {
   }
 
   network_device {
-    bridge      = "vmbr0"
-    model       = "virtio"
-    firewall    = false
+    bridge   = "vmbr0"
+    model    = "virtio"
+    firewall = false
   }
 
   operating_system {
@@ -67,7 +67,10 @@ resource "proxmox_virtual_environment_vm" "client_vm" {
 
   initialization {
     ip_config {
-      ipv4 { address = "dhcp" }
+      ipv4 {
+        address = "192.168.0.${100 + (var.vm_id % 100)}/24"
+        gateway = "192.168.0.1"
+      }
     }
     user_account {
       username = "voltcore"
