@@ -1,16 +1,14 @@
-# env
 .env
+.credentials
 
-# node
 node_modules/
 
-# backups
+terraform/.terraform/
+*.tfstate
+tfplan
+
 *.tar.gz
 backups/
 
-# docker volumes
 minio/
 jenkins/
-
-# logs
-*.log
