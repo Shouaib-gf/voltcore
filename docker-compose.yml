@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: voltcore-minio
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: "voltcore"
+      MINIO_ROOT_PASSWORD: "fdafb617874f7f4c7ab0039618749277"
+    volumes:
+      - /opt/voltcore/minio:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: voltcore-jenkins
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+      - "50001:50000"
+    volumes:
+      - /opt/voltcore/jenkins:/var/jenkins_home
+      - /opt/voltcore/terraform:/opt/voltcore/terraform
+    environment:
+      - JAVA_OPTS=-Xmx512m -Xms256m -Djenkins.install.runSetupWizard=false
+    user: root
+  api:
+    build: ./api
+    container_name: voltcore-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/app   # 🔥 THIS IS THE KEY FIX
+    environment:
+      - PORT=3000
+      - JENKINS_URL=http://192.168.0.143:8080
+      - JENKINS_USER=Shouaib
+      - JENKINS_TOKEN=11d0609b21bf69fb86359f7a08ed5246bf
+      - JENKINS_JOB=voltcore-vm-provision
+      - PROXMOX_URL=https://192.168.0.143:8006
+      - PROXMOX_NODE=pve

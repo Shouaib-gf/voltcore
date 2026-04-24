@@ -1,0 +1,16 @@
+# env
+.env
+
+# node
+node_modules/
+
+# backups
+*.tar.gz
+backups/
+
+# docker volumes
+minio/
+jenkins/
+
+# logs
+*.log
