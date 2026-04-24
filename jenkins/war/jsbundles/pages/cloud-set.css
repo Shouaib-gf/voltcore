@@ -1,0 +1,2 @@
+.app-cloud-item{--tertiary-color:var(--text-color-secondary);align-items:center;display:grid;grid-template-columns:auto auto 1fr auto}.app-cloud-item>svg{height:1.125rem;margin-right:.75rem;width:1.125rem}.app-cloud-item__actions{display:flex;gap:.5rem;margin-right:.4375rem}.app-cloud-item__actions>.jenkins-button{aspect-ratio:1;min-height:2rem!important;padding:0;transition:color var(--standard-transition)}.app-cloud-item__actions:empty{display:none}
+/*# sourceMappingURL=cloud-set.css.map*/
