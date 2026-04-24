@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VoltCore</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0e1a;--bg2:#111827;--bg3:#1a2235;
+  --cyan:#00d4ff;--blue:#3b82f6;
+  --text:#e2e8f0;--muted:#94a3b8;--border:#1e2d45;
+  --success:#10b981;--warn:#f59e0b;--danger:#ef4444;--purple:#8b5cf6;
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+a{color:inherit;text-decoration:none}
+.page{display:none}.page.active{display:block}
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:rgba(10,14,26,0.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-size:1.25rem;font-weight:700;color:var(--cyan);letter-spacing:-.5px;cursor:pointer}
+.logo span{color:var(--text)}
+.nav-links{display:flex;gap:2rem;font-size:.875rem;color:var(--muted)}
+.nav-links a{cursor:pointer;transition:color .15s}.nav-links a:hover{color:var(--text)}
+.nav-actions{display:flex;gap:.75rem;align-items:center}
+.api-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s}
+.api-dot.online{background:var(--success)}.api-dot.offline{background:var(--danger)}
+.api-status{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--muted)}
+/* NOTIFICATION BELL */
+.notif-bell{position:relative;cursor:pointer;padding:.4rem;border-radius:6px;transition:background .15s}
+.notif-bell:hover{background:var(--bg3)}
+.notif-bell svg{width:18px;height:18px;fill:var(--muted)}
+.notif-badge{position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--danger);border-radius:50%;display:none}
+.notif-badge.show{display:block}
+.notif-dropdown{position:absolute;top:56px;right:1rem;width:320px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;z-index:200;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.notif-dropdown.open{display:block}
+.notif-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.85rem;font-weight:600}
+.notif-list{max-height:280px;overflow-y:auto}
+.notif-item{padding:.75rem 1rem;border-bottom:1px solid rgba(30,45,69,.5);font-size:.82rem;display:flex;gap:.75rem;align-items:flex-start;cursor:pointer}
+.notif-item:hover{background:var(--bg3)}
+.notif-item .ni-icon{font-size:1rem;margin-top:1px}
+.notif-item .ni-text{flex:1;color:var(--muted);line-height:1.5}
+.notif-item .ni-text b{color:var(--text);display:block}
+.notif-item .ni-time{font-size:.72rem;color:var(--muted);white-space:nowrap}
+.notif-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.85rem}
+/* BTNS */
+.btn{padding:.45rem 1.1rem;border-radius:6px;font-size:.875rem;cursor:pointer;border:none;font-weight:500;transition:all .15s}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--cyan)}
+.btn-primary{background:var(--cyan);color:#0a0e1a}.btn-primary:hover{background:#00b8d9}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-outline{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}.btn-outline:hover{background:rgba(0,212,255,.08)}
+.btn-danger{background:var(--danger);color:#fff;border:none}.btn-danger:hover{background:#dc2626}
+.btn-success{background:var(--success);color:#fff;border:none}.btn-success:hover{background:#059669}
+.btn-warn{background:var(--warn);color:#0a0e1a;border:none}
+.btn-sm{padding:.3rem .75rem;font-size:.8rem}
+.btn-xs{padding:.2rem .5rem;font-size:.75rem}
+/* HERO */
+.hero{min-height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.3}
+.hero-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(0,212,255,.12) 0%,transparent 70%);pointer-events:none}
+.hero-content{position:relative;z-index:1;max-width:720px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--cyan);font-size:.78rem;padding:.3rem .9rem;border-radius:999px;margin-bottom:1.5rem}
+.pulse{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+h1{font-size:3.5rem;font-weight:700;line-height:1.1;margin-bottom:1.25rem;letter-spacing:-1px}
+h1 span{color:var(--cyan)}
+.hero p{font-size:1.15rem;color:var(--muted);margin-bottom:2.5rem;line-height:1.7}
+.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.hero-stats{display:flex;gap:3rem;justify-content:center;margin-top:4rem;padding-top:3rem;border-top:1px solid var(--border)}
+.hero-stats .stat h3{font-size:1.75rem;font-weight:700;color:var(--cyan)}
+.hero-stats .stat p{font-size:.85rem;color:var(--muted);margin-top:2px}
+/* SECTIONS */
+.section{padding:5rem 2rem;max-width:1100px;margin:0 auto}
+.section-label{text-align:center;color:var(--cyan);font-size:.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:.75rem}
+.section-title{text-align:center;font-size:2.2rem;font-weight:700;margin-bottom:1rem}
+.section-sub{text-align:center;color:var(--muted);font-size:1rem;margin-bottom:3rem}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem}
+.feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:border-color .2s}
+.feature-card:hover{border-color:rgba(0,212,255,.4)}
+.feat-icon{width:40px;height:40px;border-radius:8px;background:rgba(0,212,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:1rem}
+.feature-card h3{font-size:1rem;font-weight:600;margin-bottom:.4rem}
+.feature-card p{font-size:.875rem;color:var(--muted);line-height:1.6}
+/* PLANS */
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+.plan{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.75rem;position:relative}
+.plan.featured{border-color:var(--cyan);background:#0d1829}
+.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#0a0e1a;font-size:.72rem;font-weight:700;padding:3px 14px;border-radius:999px;white-space:nowrap}
+.plan-name{font-size:1rem;font-weight:600;color:var(--muted);margin-bottom:.5rem}
+.plan-price{font-size:2.5rem;font-weight:700;color:var(--text);margin-bottom:.25rem}
+.plan-price span{font-size:.9rem;font-weight:400;color:var(--muted)}
+.plan-desc{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.75rem}
+.plan-features li{font-size:.875rem;display:flex;align-items:center;gap:8px;color:var(--muted)}
+.plan-features li .check{color:var(--success);font-weight:700}
+/* BUILDER */
+.builder{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:700px;margin:0 auto}
+.builder-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem}
+.builder-label{font-size:.9rem;color:var(--muted)}
+.builder-val{font-size:.9rem;font-weight:600;color:var(--cyan);min-width:70px;text-align:right}
+input[type=range]{width:55%;accent-color:var(--cyan);height:4px}
+.os-opts{display:flex;gap:.75rem;flex-wrap:wrap}
+.os-opt{padding:.4rem 1rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.85rem;cursor:pointer;transition:all .15s}
+.os-opt.selected,.os-opt:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.08)}
+.price-box{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.price-total{font-size:1.75rem;font-weight:700;color:var(--cyan)}
+/* DASHBOARD */
+.dash-layout{display:flex;min-height:calc(100vh - 60px)}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:1.25rem 0;flex-shrink:0}
+.sidebar-section{padding:0 .75rem;margin-bottom:1.5rem}
+.sidebar-label{font-size:.7rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:0 .75rem;margin-bottom:.5rem}
+.nav-item{display:flex;align-items:center;gap:10px;padding:.55rem .75rem;border-radius:8px;font-size:.875rem;color:var(--muted);cursor:pointer;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(0,212,255,.1);color:var(--cyan)}
+.nav-item .ni{font-size:1rem;width:20px;text-align:center}
+.admin-badge{font-size:.65rem;background:var(--purple);color:#fff;padding:1px 6px;border-radius:4px;margin-left:auto}
+.dash-content{flex:1;padding:2rem;overflow-y:auto}
+.dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
+.dash-title{font-size:1.4rem;font-weight:600}
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem}
+.stat-card .sc-label{font-size:.78rem;color:var(--muted);margin-bottom:.4rem}
+.stat-card .sc-val{font-size:1.5rem;font-weight:700}
+.stat-card .sc-sub{font-size:.75rem;color:var(--muted);margin-top:3px}
+.c-cyan{color:var(--cyan)}.c-green{color:var(--success)}.c-warn{color:var(--warn)}.c-danger{color:var(--danger)}.c-purple{color:var(--purple)}
+/* MINI CHART */
+.mini-chart{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:6px}
+.mini-bar{flex:1;background:rgba(0,212,255,.3);border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
+/* VM TABLE */
+.vm-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.vm-table th{text-align:left;color:var(--muted);font-weight:500;font-size:.78rem;padding:.75rem 1rem;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
+.vm-table td{padding:.85rem 1rem;border-bottom:1px solid rgba(30,45,69,.5);vertical-align:middle}
+.vm-table tr:last-child td{border-bottom:none}
+.vm-table tr:hover td{background:rgba(255,255,255,.02)}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:.75rem;font-weight:500}
+.s-running{background:rgba(16,185,129,.15);color:var(--success)}
+.s-stopped{background:rgba(148,163,184,.15);color:var(--muted)}
+.s-provisioning{background:rgba(245,158,11,.15);color:var(--warn)}
+.s-failed{background:rgba(239,68,68,.15);color:var(--danger)}
+.s-expired{background:rgba(139,92,246,.15);color:var(--purple)}
+.s-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.table-header{padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.table-title{font-size:1rem;font-weight:600}
+/* FORMS */
+.deploy-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:580px}
+.deploy-panel h3{font-size:1rem;font-weight:600;margin-bottom:1.25rem}
+.form-row{margin-bottom:1rem}
+.form-row label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.35rem}
+.form-row input,.form-row select,.form-row textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:6px;font-size:.875rem;outline:none;font-family:inherit}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--cyan)}
+.form-row select option{background:var(--bg2)}
+.form-row textarea{resize:vertical;min-height:70px;font-size:.78rem}
+.spec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
+.spec-row label{font-size:.8rem;color:var(--muted)}
+.spec-row .sv{font-size:.85rem;font-weight:600;color:var(--cyan);min-width:30px;text-align:right}
+.spec-row input[type=range]{width:130px;accent-color:var(--cyan)}
+.deploy-cost{display:flex;justify-content:space-between;align-items:center;padding:1rem;background:var(--bg3);border-radius:8px;margin-top:1rem}
+.empty-state{text-align:center;padding:3rem;color:var(--muted)}
+.empty-state .es-icon{font-size:2.5rem;margin-bottom:.75rem}
+/* MODALS */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:2rem;width:400px;max-width:92vw;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:1.2rem;font-weight:600;margin-bottom:1.25rem}
+.modal-footer{display:flex;gap:.75rem;margin-top:1.5rem}
+.modal-footer .btn{flex:1;padding:.6rem;font-size:.9rem}
+.divider{display:flex;align-items:center;gap:.75rem;margin:1rem 0;color:var(--muted);font-size:.8rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
+.tab{padding:.6rem 1rem;font-size:.875rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+/* TOAST */
+.toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:400;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end}
+.toast{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.75rem 1.1rem;border-radius:10px;font-size:.85rem;border-left:3px solid var(--cyan);box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:320px;animation:slideIn .2s ease;display:flex;align-items:flex-start;gap:.5rem}
+.toast.error{border-left-color:var(--danger)}
+.toast.success{border-left-color:var(--success)}
+.toast.warn{border-left-color:var(--warn)}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+/* PROGRESS BAR */
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:2px;transition:width .5s}
+/* BILLING */
+.bill-section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.25rem}
+.bill-section h3{font-size:1rem;font-weight:600;margin-bottom:1rem}
+.bill-row{display:flex;justify-content:space-between;font-size:.875rem;padding:.6rem 0;border-bottom:1px solid rgba(30,45,69,.5)}
+.bill-row:last-child{border-bottom:none}
+.bill-row span:first-child{color:var(--muted)}
+/* SUBSCRIPTION GATE */
+.sub-gate{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;text-align:center}
+.sub-gate h3{font-size:1rem;font-weight:600;margin-bottom:.5rem}
+.sub-gate p{font-size:.85rem;color:var(--muted);margin-bottom:1rem}
+/* IDLE WARNING */
+.idle-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.75rem 1rem;font-size:.82rem;color:var(--warn);display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
+/* EXPIRY BAR */
+.expiry-row{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--muted)}
+.expiry-row .bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.expiry-row .fill{height:100%;border-radius:2px}
+/* ADMIN */
+.admin-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.admin-tab{padding:.4rem 1rem;border-radius:6px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .15s}
+.admin-tab.active{background:rgba(139,92,246,.15);color:var(--purple);border-color:var(--purple)}
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:3rem 2rem;background:var(--bg2)}
+.footer-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:2rem}
+.footer-brand p{font-size:.8rem;color:var(--muted);max-width:220px;line-height:1.6;margin-top:.5rem}
+.footer-links h4{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.75rem}
+.footer-links ul{list-style:none;display:flex;flex-direction:column;gap:.4rem}
+.footer-links li{font-size:.85rem;color:var(--muted);cursor:pointer}.footer-links li:hover{color:var(--text)}
+.footer-bottom{max-width:1100px;margin:2rem auto 0;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- NOTIFICATION DROPDOWN -->
+<div class="notif-dropdown" id="notifDropdown">
+  <div class="notif-header">
+    <span>Notifications</span>
+    <span style="font-size:.75rem;color:var(--cyan);cursor:pointer" onclick="clearNotifs()">Clear all</span>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-empty">No notifications yet</div>
+  </div>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <div class="tabs">
+      <div class="tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign in</div>
+      <div class="tab" id="tabRegister" onclick="switchAuthTab('register')">Create account</div>
+    </div>
+    <!-- LOGIN -->
+    <div id="authLogin">
+      <div class="form-row"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com"/></div>
+      <div class="form-row"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+      </div>
+      <p style="font-size:.78rem;color:var(--muted);margin-top:.75rem;text-align:center">Demo admin: admin@voltcore.tn / admin123</p>
+    </div>
+    <!-- REGISTER -->
+    <div id="authRegister" style="display:none">
+      <div class="form-row"><label>Full name</label><input type="text" id="regName" placeholder="Ahmed Khalil"/></div>
+      <div class="form-row"><label>Email</label><input type="email" id="regEmail" placeholder="you@example.com"/></div>
+      <div class="form-row"><label>Password</label><input type="password" id="regPass" placeholder="Min 6 characters"/></div>
+      <div class="form-row"><label>Choose a plan</label>
+        <select id="regPlan">
+          <option value="basic">Basic — 29 TND/mo</option>
+          <option value="pro">Pro — 89 TND/mo</option>
+          <option value="enterprise">Enterprise — 249 TND/mo</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="doRegister()">Create account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBSCRIBE MODAL -->
+<div class="modal-overlay" id="subModal">
+  <div class="modal">
+    <h2>Choose a plan to deploy VMs</h2>
+    <p style="color:var(--muted);font-size:.875rem;margin-bottom:1.25rem">You need an active subscription to deploy virtual machines.</p>
+    <div style="display:flex;flex-direction:column;gap:.75rem">
+      <div class="plan" style="padding:1rem;cursor:pointer" onclick="subscribePlan('basic')" id="sp-basic">
+        <div style="display:flex;justify-content:space-between"><b>Basic</b><span style="color:var(--cyan)">29 TND/mo</span></div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">1 vCPU · 2 GB · 40 GB · 1 VM</div>
+      </div>
+      <div class="plan featured" style="padding:1rem;cursor:pointer" onclick="subscribePlan('pro')">
+        <div class="plan-badge">Recommended</div>
+        <div style="display:flex;justify-content:space-between"><b>Pro</b><span style="color:var(--cyan)">89 TND/mo</span></div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">4 vCPU · 8 GB · 160 GB · 5 VMs</div>
+      </div>
+      <div class="plan" style="padding:1rem;cursor:pointer" onclick="subscribePlan('enterprise')">
+        <div style="display:flex;justify-content:space-between"><b>Enterprise</b><span style="color:var(--cyan)">249 TND/mo</span></div>
+        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">16 vCPU · 32 GB · 640 GB · Unlimited</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:1rem" onclick="document.getElementById('subModal').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo" onclick="goHome()">Volt<span>Core</span></div>
+  <div class="nav-links" id="landingNavLinks">
+    <a onclick="scrollToSection('features')">Features</a>
+    <a onclick="scrollToSection('pricing')">Pricing</a>
+    <a onclick="scrollToSection('builder')">Build VM</a>
+  </div>
+  <div class="nav-actions">
+    <div class="api-status"><div class="api-dot" id="apiDot"></div><span id="apiLabel" style="font-size:.75rem;color:var(--muted)">Checking...</span></div>
+    <div class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" style="display:none">
+      <svg viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      <div class="notif-badge" id="notifBadge"></div>
+    </div>
+    <button class="btn btn-ghost" id="navLoginBtn" onclick="openAuthModal('login')">Sign in</button>
+    <button class="btn btn-primary" id="navRegisterBtn" onclick="openAuthModal('register')">Get started</button>
+    <span id="navUserInfo" style="display:none;font-size:.82rem;color:var(--muted)"></span>
+    <button class="btn btn-ghost btn-sm" id="navLogoutBtn" style="display:none" onclick="logout()">Sign out</button>
+  </div>
+</nav>
+
+<!-- ══════════════════ LANDING ══════════════════ -->
+<div class="page active" id="landingPage">
+  <div class="hero">
+    <div class="hero-grid"></div><div class="hero-glow"></div>
+    <div class="hero-content">
+      <div class="badge"><span class="pulse"></span>99.9% Uptime SLA</div>
+      <h1>Deploy Linux VMs<br/>in <span>Seconds</span></h1>
+      <p>Scalable virtual machines powered by Proxmox + Terraform.<br/>Deploy, scale, and manage with one click.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" style="padding:.7rem 1.75rem;font-size:1rem" onclick="openAuthModal('register')">Deploy your first VM</button>
+        <button class="btn btn-outline" style="padding:.7rem 1.75rem;font-size:1rem" onclick="scrollToSection('pricing')">View pricing</button>
+      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><h3>500+</h3><p>Active machines</p></div>
+      <div class="stat"><h3>12</h3><p>Global regions</p></div>
+      <div class="stat"><h3>5 TB</h3><p>Bandwidth/mo</p></div>
+      <div class="stat"><h3>24/7</h3><p>Support</p></div>
+    </div>
+  </div>
+
+  <div id="features"><div class="section">
+    <div class="section-label">Why VoltCore</div>
+    <div class="section-title">Everything you need to run at scale</div>
+    <div class="section-sub">Built for developers who demand speed, security, and reliability.</div>
+    <div class="features-grid">
+      <div class="feature-card"><div class="feat-icon">⚡</div><h3>Instant deployment</h3><p>VMs provisioned in ~40s via Proxmox + Terraform pipeline.</p></div>
+      <div class="feature-card"><div class="feat-icon">🔒</div><h3>Isolated & secure</h3><p>Full hardware virtualisation with KVM. SSH key injection via cloud-init.</p></div>
+      <div class="feature-card"><div class="feat-icon">📈</div><h3>Scale on demand</h3><p>Upgrade CPU, RAM or storage at any time without downtime.</p></div>
+      <div class="feature-card"><div class="feat-icon">🌍</div><h3>Multi-region</h3><p>Deploy closer to your users. Cut latency across MENA, EU and beyond.</p></div>
+      <div class="feature-card"><div class="feat-icon">📊</div><h3>Real-time monitoring</h3><p>Live CPU, RAM, disk and bandwidth stats in your dashboard.</p></div>
+      <div class="feature-card"><div class="feat-icon">🔔</div><h3>Smart alerts</h3><p>Idle VM warnings, expiry alerts, and deploy notifications built in.</p></div>
+    </div>
+  </div></div>
+
+  <div id="pricing"><div class="section">
+    <div class="section-label">Pricing</div>
+    <div class="section-title">Simple, transparent plans</div>
+    <div class="section-sub">All plans include Linux, SSD storage, and monitoring. Prices in TND/month.</div>
+    <div class="plans-grid">
+      <div class="plan">
+        <div class="plan-name">Basic</div>
+        <div class="plan-price">29 <span>TND/mo</span></div>
+        <div class="plan-desc">Perfect for personal projects.</div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span>1 vCPU · 2 GB RAM</li>
+          <li><span class="check">✓</span>40 GB SSD</li>
+          <li><span class="check">✓</span>1 TB bandwidth</li>
+          <li><span class="check">✓</span>1 VM</li>
+          <li><span class="check">✓</span>30 day validity</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;padding:.6rem" onclick="openAuthModal('register')">Get started</button>
+      </div>
+      <div class="plan featured">
+        <div class="plan-badge">Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">89 <span>TND/mo</span></div>
+        <div class="plan-desc">For growing teams and production workloads.</div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span>4 vCPU · 8 GB RAM</li>
+          <li><span class="check">✓</span>160 GB SSD</li>
+          <li><span class="check">✓</span>5 TB bandwidth</li>
+          <li><span class="check">✓</span>5 VMs</li>
+          <li><span class="check">✓</span>30 day validity</li>
+          <li><span class="check">✓</span>Daily backups</li>
+        </ul>
+        <button class="btn btn-primary" style="width:100%;padding:.6rem" onclick="openAuthModal('register')">Get started</button>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">249 <span>TND/mo</span></div>
+        <div class="plan-desc">Dedicated resources for large deployments.</div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span>16 vCPU · 32 GB RAM</li>
+          <li><span class="check">✓</span>640 GB SSD</li>
+          <li><span class="check">✓</span>Unlimited bandwidth</li>
+          <li><span class="check">✓</span>Unlimited VMs</li>
+          <li><span class="check">✓</span>30 day validity</li>
+          <li><span class="check">✓</span>Priority support</li>
+        </ul>
+        <button class="btn btn-outline" style="width:100%;padding:.6rem" onclick="openAuthModal('register')">Contact sales</button>
+      </div>
+    </div>
+  </div></div>
+
+  <div id="builder"><div class="section">
+    <div class="section-label">Custom builder</div>
+    <div class="section-title">Build your perfect VM</div>
+    <div class="section-sub">Tune every spec and see your price live.</div>
+    <div class="builder">
+      <div class="builder-row"><span class="builder-label">vCPU cores</span><input type="range" min="1" max="32" value="2" step="1" oninput="calcPrice()" id="bCpu"/><span class="builder-val" id="bCpuVal">2 cores</span></div>
+      <div class="builder-row"><span class="builder-label">RAM</span><input type="range" min="1" max="64" value="4" step="1" oninput="calcPrice()" id="bRam"/><span class="builder-val" id="bRamVal">4 GB</span></div>
+      <div class="builder-row"><span class="builder-label">SSD storage</span><input type="range" min="20" max="2000" value="80" step="20" oninput="calcPrice()" id="bDisk"/><span class="builder-val" id="bDiskVal">80 GB</span></div>
+      <div class="builder-row" style="align-items:flex-start;margin-top:.5rem">
+        <span class="builder-label">OS</span>
+        <div class="os-opts">
+          <div class="os-opt selected" onclick="selOs(this)">Ubuntu 22.04</div>
+          <div class="os-opt" onclick="selOs(this)">Debian 12</div>
+        </div>
+      </div>
+      <div class="price-box">
+        <div>
+          <div class="price-total" id="bPrice">24 TND<small style="font-size:.9rem;color:var(--muted)">/mo</small></div>
+          <div style="font-size:.8rem;color:var(--muted)">Billed monthly • No setup fee</div>
+        </div>
+        <button class="btn btn-primary" style="padding:.6rem 1.5rem" onclick="openAuthModal('register')">Deploy now</button>
+      </div>
+    </div>
+  </div></div>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand"><div class="logo">Volt<span style="color:var(--text)">Core</span></div><p>High-performance Linux virtual machines. Powered by Proxmox + Terraform + Jenkins.</p></div>
+      <div class="footer-links"><h4>Product</h4><ul><li onclick="scrollToSection('features')">Features</li><li onclick="scrollToSection('pricing')">Pricing</li><li>Regions</li><li>Status</li></ul></div>
+      <div class="footer-links"><h4>Developers</h4><ul><li>API Docs</li><li>CLI</li><li>Changelog</li></ul></div>
+      <div class="footer-links"><h4>Company</h4><ul><li>About</li><li>Blog</li><li>Contact</li></ul></div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 VoltCore. All rights reserved.</span><span>Privacy · Terms</span></div>
+  </footer>
+</div>
+
+<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<div class="page" id="dashPage">
+  <div class="dash-layout">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main</div>
+        <div class="nav-item active" id="si-overview" onclick="showTab('overview',this)"><span class="ni">📊</span>Overview</div>
+        <div class="nav-item" id="si-machines" onclick="showTab('machines',this)"><span class="ni">🖥️</span>My VMs</div>
+        <div class="nav-item" id="si-deploy" onclick="showTab('deploy',this)"><span class="ni">🚀</span>Deploy VM</div>
+        <div class="nav-item" id="si-billing" onclick="showTab('billing',this)"><span class="ni">💳</span>Billing</div>
+        <div class="nav-item" id="si-settings" onclick="showTab('settings',this)"><span class="ni">⚙️</span>Settings</div>
+      </div>
+      <div class="sidebar-section" id="adminSection" style="display:none">
+        <div class="sidebar-label">Admin</div>
+        <div class="nav-item" id="si-admin" onclick="showTab('admin',this)"><span class="ni">👑</span>Admin Panel<span class="admin-badge">ADMIN</span></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="nav-item" onclick="logout()"><span class="ni">🚪</span>Sign out</div>
+      </div>
+    </div>
+
+    <div class="dash-content">
+
+      <!-- OVERVIEW -->
+      <div id="tab-overview">
+        <div class="dash-header">
+          <div>
+            <div class="dash-title">Overview</div>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:2px" id="ov-welcome"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="showTab('deploy',document.getElementById('si-deploy'))">+ Deploy VM</button>
+        </div>
+        <div id="idleWarning" class="idle-warn" style="display:none">⚠️ You have a VM that has been running for over 5 minutes with no activity. Consider stopping it to save resources.</div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="sc-label">Active VMs</div><div class="sc-val c-cyan" id="ov-active">0</div><div class="sc-sub">running now</div><div class="mini-chart" id="chart-vms"></div></div>
+          <div class="stat-card"><div class="sc-label">CPU Usage</div><div class="sc-val c-green" id="ov-cpu">0%</div><div class="sc-sub">avg across VMs</div><div class="mini-chart" id="chart-cpu"></div></div>
+          <div class="stat-card"><div class="sc-label">Bandwidth</div><div class="sc-val c-warn" id="ov-bw">0 GB</div><div class="sc-sub" id="ov-bw-sub">of plan limit</div><div class="progress-bar"><div class="progress-fill" id="bw-fill" style="background:var(--warn);width:0%"></div></div></div>
+          <div class="stat-card"><div class="sc-label">This Month</div><div class="sc-val" id="ov-bill">0 TND</div><div class="sc-sub" id="ov-plan-label">No plan</div></div>
+        </div>
+        <div class="table-card">
+          <div class="table-header"><span class="table-title">Your machines</span><button class="btn btn-ghost btn-sm" onclick="showTab('machines',document.getElementById('si-machines'))">View all</button></div>
+          <div id="ov-vm-list"></div>
+        </div>
+      </div>
+
+      <!-- MY VMs -->
+      <div id="tab-machines" style="display:none">
+        <div class="dash-header"><div class="dash-title">My VMs</div><button class="btn btn-primary btn-sm" onclick="showTab('deploy',document.getElementById('si-deploy'))">+ Deploy VM</button></div>
+        <div class="table-card"><div id="vm-list-full"></div></div>
+      </div>
+
+      <!-- DEPLOY -->
+      <div id="tab-deploy" style="display:none">
+        <div class="dash-header"><div class="dash-title">Deploy new VM</div></div>
+        <div id="subGateDiv" class="sub-gate" style="display:none">
+          <h3>🔒 Subscription required</h3>
+          <p>You need an active plan to deploy VMs.</p>
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('subModal').classList.add('open')">Choose a plan</button>
+        </div>
+        <div class="deploy-panel" id="deployFormDiv">
+          <div class="form-row"><label>VM name (lowercase, hyphens only)</label><input type="text" id="vmName" placeholder="e.g. web-prod-02"/></div>
+          <div class="form-row"><label>Your email</label><input type="email" id="vmEmail"/></div>
+          <div class="form-row"><label>SSH public key</label><textarea id="vmSshKey" placeholder="ssh-rsa AAAA..."></textarea></div>
+          <div class="form-row"><label>Operating system</label>
+            <select id="vmOs"><option value="ubuntu-22.04">Ubuntu 22.04 LTS</option><option value="debian-12">Debian 12</option></select>
+          </div>
+          <div class="form-row"><label>Plan</label>
+            <select id="vmPlan" onchange="planChanged()">
+              <option value="basic">Basic — 1 vCPU, 2 GB, 40 GB</option>
+              <option value="pro">Pro — 4 vCPU, 8 GB, 160 GB</option>
+              <option value="enterprise">Enterprise — 16 vCPU, 32 GB, 640 GB</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div id="customSpecs" style="display:none;margin-top:.5rem">
+            <div class="spec-row"><label>vCPU</label><input type="range" min="1" max="32" value="2" step="1" oninput="dCalc()" id="dCpu"/><span class="sv" id="dCpuV">2</span></div>
+            <div class="spec-row"><label>RAM (GB)</label><input type="range" min="1" max="64" value="4" step="1" oninput="dCalc()" id="dRam"/><span class="sv" id="dRamV">4</span></div>
+            <div class="spec-row"><label>SSD (GB)</label><input type="range" min="20" max="2000" value="80" step="20" oninput="dCalc()" id="dDisk"/><span class="sv" id="dDiskV">80</span></div>
+          </div>
+          <div class="form-row"><label>VM validity (days)</label>
+            <select id="vmExpiry"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option></select>
+          </div>
+          <div class="deploy-cost">
+            <div><div style="font-size:.8rem;color:var(--muted)">Estimated cost</div><div style="font-size:1.4rem;font-weight:700;color:var(--cyan)" id="dCost">29 TND/mo</div></div>
+            <button class="btn btn-primary" id="deployBtn" onclick="deployVM()">Deploy VM</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- BILLING -->
+      <div id="tab-billing" style="display:none">
+        <div class="dash-header"><div class="dash-title">Billing</div><button class="btn btn-outline btn-sm" onclick="document.getElementById('subModal').classList.add('open')">Upgrade plan</button></div>
+        <div class="bill-section">
+          <h3>Current subscription</h3>
+          <div class="bill-row"><span>Plan</span><span id="bill-plan">—</span></div>
+          <div class="bill-row"><span>Price</span><span id="bill-price">—</span></div>
+          <div class="bill-row"><span>Status</span><span style="color:var(--success)">✓ Active</span></div>
+          <div class="bill-row"><span>Expires</span><span id="bill-expires">—</span></div>
+          <div class="bill-row"><span>VM limit</span><span id="bill-vmlimit">—</span></div>
+        </div>
+        <div class="bill-section">
+          <h3>This month</h3>
+          <div id="bill-items"></div>
+          <div class="bill-row" style="font-weight:600;margin-top:.25rem"><span>Total</span><span id="bill-total" style="color:var(--cyan)">0 TND</span></div>
+        </div>
+        <div class="bill-section">
+          <h3>Invoice history</h3>
+          <div id="bill-history"></div>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div id="tab-settings" style="display:none">
+        <div class="dash-header"><div class="dash-title">Settings</div></div>
+        <div class="deploy-panel">
+          <h3>Profile</h3>
+          <div class="form-row" style="margin-top:1rem"><label>Full name</label><input type="text" id="setName"/></div>
+          <div class="form-row"><label>Email</label><input type="email" id="setEmail" disabled/></div>
+          <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save changes</button>
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)">
+            <h3>API Configuration</h3>
+            <div class="form-row" style="margin-top:1rem"><label>Backend API URL</label><input type="text" id="apiUrlInput" value="http://192.168.0.143:3000"/></div>
+            <button class="btn btn-primary btn-sm" onclick="saveApiUrl()">Save & reconnect</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN PANEL -->
+      <div id="tab-admin" style="display:none">
+        <div class="dash-header"><div class="dash-title">Admin Panel</div><span style="font-size:.8rem;color:var(--purple)">👑 Administrator</span></div>
+        <div class="admin-tabs">
+          <div class="admin-tab active" onclick="showAdminTab('all-vms',this)">All VMs</div>
+          <div class="admin-tab" onclick="showAdminTab('all-users',this)">Users</div>
+          <div class="admin-tab" onclick="showAdminTab('all-billing',this)">Billing</div>
+        </div>
+        <!-- ALL VMs -->
+        <div id="atab-all-vms">
+          <div class="table-card"><div class="table-header"><span class="table-title">All Virtual Machines</span><span id="admin-vm-count" style="font-size:.8rem;color:var(--muted)"></span></div><div id="admin-vm-list"></div></div>
+        </div>
+        <!-- ALL USERS -->
+        <div id="atab-all-users" style="display:none">
+          <div class="table-card"><div class="table-header"><span class="table-title">Registered Users</span></div>
+          <table class="vm-table"><thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>VMs</th><th>Joined</th><th>Actions</th></tr></thead>
+          <tbody id="admin-user-list"></tbody></table></div>
+        </div>
+        <!-- BILLING -->
+        <div id="atab-all-billing" style="display:none">
+          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="stat-card"><div class="sc-label">Total Revenue</div><div class="sc-val c-cyan" id="adm-rev">0 TND</div><div class="sc-sub">all plans</div></div>
+            <div class="stat-card"><div class="sc-label">Active Subscriptions</div><div class="sc-val c-green" id="adm-subs">0</div><div class="sc-sub">paying users</div></div>
+            <div class="stat-card"><div class="sc-label">Total VMs</div><div class="sc-val" id="adm-vms">0</div><div class="sc-sub">across all users</div></div>
+          </div>
+          <div class="bill-section" style="margin-top:1rem"><h3>Revenue breakdown</h3><div id="adm-breakdown"></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+const API_BASE_DEFAULT = 'http://192.168.0.143:3000';
+let apiBase = localStorage.getItem('voltcore_api') || API_BASE_DEFAULT;
+
+// Users DB (in-memory, seeded)
+let users = JSON.parse(localStorage.getItem('vc_users') || 'null') || [
+  {id:'admin',name:'Admin',email:'admin@voltcore.tn',pass:'admin123',role:'admin',plan:'enterprise',planExpiry:daysFromNow(365),vms:[],joined:new Date().toISOString(),bandwidth:0}
+];
+let currentUser = null;
+let allVms = JSON.parse(localStorage.getItem('vc_allvms') || '[]');
+let notifications = JSON.parse(localStorage.getItem('vc_notifs') || '[]');
+let pollTimers = {};
+let cpuHistory = Array(8).fill(0);
+let vmHistory  = Array(8).fill(0);
+let idleTimers = {};
+
+const PLAN_LIMITS = {basic:{price:29,vms:1,bw:1024,label:'Basic'},pro:{price:89,vms:5,bw:5120,label:'Pro'},enterprise:{price:249,vms:999,bw:999999,label:'Enterprise'}};
+
+function daysFromNow(d){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString();}
+function saveState(){
+  localStorage.setItem('vc_users',JSON.stringify(users));
+  localStorage.setItem('vc_allvms',JSON.stringify(allVms));
+  localStorage.setItem('vc_notifs',JSON.stringify(notifications));
+}
+
+// ══════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════
+function openAuthModal(tab){
+  document.getElementById('authModal').classList.add('open');
+  switchAuthTab(tab);
+}
+function closeAuthModal(){document.getElementById('authModal').classList.remove('open')}
+function switchAuthTab(t){
+  document.getElementById('authLogin').style.display    = t==='login'    ? 'block':'none';
+  document.getElementById('authRegister').style.display = t==='register' ? 'block':'none';
+  document.getElementById('tabLogin').classList.toggle('active',t==='login');
+  document.getElementById('tabRegister').classList.toggle('active',t==='register');
+}
+
+function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const u=users.find(x=>x.email===email&&x.pass===pass);
+  if(!u) return toast('Invalid email or password','error');
+  currentUser=u;
+  closeAuthModal();
+  enterDashboard();
+}
+
+function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const pass=document.getElementById('regPass').value;
+  const plan=document.getElementById('regPlan').value;
+  if(!name||!email||!pass) return toast('All fields are required','error');
+  if(pass.length<6) return toast('Password must be at least 6 characters','error');
+  if(users.find(x=>x.email===email)) return toast('Email already registered','error');
+  const u={
+    id:'usr_'+Date.now(),name,email,pass,role:'user',
+    plan,planExpiry:daysFromNow(30),
+    vms:[],joined:new Date().toISOString(),bandwidth:0
+  };
+  users.push(u);
+  currentUser=u;
+  saveState();
+  closeAuthModal();
+  toast('Welcome to VoltCore, '+name+'! 🎉','success');
+  enterDashboard();
+}
+
+function enterDashboard(){
+  document.getElementById('landingPage').classList.remove('active');
+  document.getElementById('dashPage').classList.add('active');
+  document.getElementById('navLoginBtn').style.display='none';
+  document.getElementById('navRegisterBtn').style.display='none';
+  document.getElementById('navUserInfo').style.display='inline';
+  document.getElementById('navUserInfo').textContent=currentUser.name;
+  document.getElementById('navLogoutBtn').style.display='inline';
+  document.getElementById('notifBell').style.display='flex';
+  document.getElementById('landingNavLinks').style.display='none';
+  if(currentUser.role==='admin') document.getElementById('adminSection').style.display='block';
+  // Pre-fill deploy form
+  document.getElementById('vmEmail').value=currentUser.email;
+  document.getElementById('setName').value=currentUser.name;
+  document.getElementById('setEmail').value=currentUser.email;
+  document.getElementById('apiUrlInput').value=apiBase;
+  showTab('overview',document.getElementById('si-overview'));
+  renderAll();
+  checkApi();
+  startStatsTick();
+  checkExpiry();
+}
+
+function logout(){
+  currentUser=null;
+  Object.values(pollTimers).forEach(clearInterval);
+  pollTimers={};
+  document.getElementById('dashPage').classList.remove('active');
+  document.getElementById('landingPage').classList.add('active');
+  document.getElementById('navLoginBtn').style.display='inline';
+  document.getElementById('navRegisterBtn').style.display='inline';
+  document.getElementById('navUserInfo').style.display='none';
+  document.getElementById('navLogoutBtn').style.display='none';
+  document.getElementById('notifBell').style.display='none';
+  document.getElementById('landingNavLinks').style.display='flex';
+  document.getElementById('adminSection').style.display='none';
+}
+
+// ══════════════════════════════════════════════
+// SUBSCRIPTION
+// ══════════════════════════════════════════════
+function subscribePlan(plan){
+  currentUser.plan=plan;
+  currentUser.planExpiry=daysFromNow(30);
+  saveState();
+  document.getElementById('subModal').classList.remove('open');
+  toast('Subscribed to '+PLAN_LIMITS[plan].label+' plan! 🎉','success');
+  addNotif('🎉','Subscription activated','Your '+PLAN_LIMITS[plan].label+' plan is now active.');
+  renderAll();
+}
+
+function hasPlan(){
+  if(!currentUser.plan) return false;
+  return new Date(currentUser.planExpiry)>new Date();
+}
+
+function userVms(){return allVms.filter(v=>v.userId===currentUser.id);}
+
+// ══════════════════════════════════════════════
+// DEPLOY
+// ══════════════════════════════════════════════
+function deployVM(){
+  if(!hasPlan()){
+    document.getElementById('subModal').classList.add('open');
+    return;
+  }
+  const name    = document.getElementById('vmName').value.trim();
+  const email   = document.getElementById('vmEmail').value.trim();
+  const sshKey  = document.getElementById('vmSshKey').value.trim();
+  const os      = document.getElementById('vmOs').value;
+  const plan    = document.getElementById('vmPlan').value;
+  const expDays = parseInt(document.getElementById('vmExpiry').value);
+
+  if(!name)   return toast('VM name is required','error');
+  if(!sshKey) return toast('SSH public key is required','error');
+  if(!/^[a-z0-9][a-z0-9-]{0,30}$/.test(name)) return toast('Name must be lowercase letters, numbers, hyphens','error');
+
+  const uVms=userVms().filter(v=>v.status==='running'||v.status==='provisioning');
+  const limit=PLAN_LIMITS[currentUser.plan]?.vms||1;
+  if(uVms.length>=limit) return toast('VM limit reached for your plan ('+limit+' VMs). Upgrade to deploy more.','error');
+
+  const planSpecs={basic:{cpu:1,ram:2048,disk:40},pro:{cpu:4,ram:8192,disk:160},enterprise:{cpu:16,ram:32768,disk:640},
+    custom:{cpu:parseInt(document.getElementById('dCpu').value),ram:parseInt(document.getElementById('dRam').value)*1024,disk:parseInt(document.getElementById('dDisk').value)}};
+  const specs=planSpecs[plan];
+  const vmId=Math.floor(Math.random()*9000)+1000;
+  const expiresAt=daysFromNow(expDays);
+
+  const btn=document.getElementById('deployBtn');
+  btn.disabled=true; btn.textContent='Deploying...';
+
+  fetch(apiBase+'/api/vms/deploy',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({vmName:name,clientId:currentUser.id,clientEmail:email,clientSshPubkey:sshKey,os,plan,cpuCores:specs.cpu,ramMb:specs.ram,diskGb:specs.disk,vmId})
+  }).then(r=>r.json()).then(data=>{
+    if(data.error) throw new Error(data.error);
+    const vm={
+      id:data.vmId||vmId, name:data.vmName||name, userId:currentUser.id, userEmail:email, userName:currentUser.name,
+      status:'provisioning', buildUrl:data.buildUrl||null, buildNumber: data.buildNumber ? Number(data.buildNumber) : null,
+      os, plan, cpu:specs.cpu, ram:specs.ram/1024, disk:specs.disk,
+      ip:null, expiresAt, created:new Date().toISOString(),
+      cpu_usage:0, bw_used:0, lastActive:Date.now()
+    };
+    allVms.push(vm);
+    saveState();
+    renderAll();
+
+toast('VM "'+name+'" is being provisioned via Jenkins...','success');
+addNotif('🚀','VM deploying','Jenkins pipeline started for "'+name+'".');
+showTab('machines',document.getElementById('si-machines'));
+
+// ✅ clean + safe version
+if (vm.buildNumber) {
+  console.log("Polling build:", vm.buildNumber);
+  pollBuild(vm);
+} else {
+  console.error("No buildNumber → polling not started", vm);
+}
+
+}).catch(e=>{
+  // Simulate for demo if no backend
+  const vm={
+    id:vmId, name, userId:currentUser.id, userEmail:email, userName:currentUser.name,
+    status:'provisioning', buildUrl:null, buildNumber:null,
+    os, plan, cpu:specs.cpu, ram:specs.ram/1024, disk:specs.disk,
+    ip:null, expiresAt, created:new Date().toISOString(),
+    cpu_usage:0, bw_used:0, lastActive:Date.now()
+  };
+    allVms.push(vm);
+    saveState(); renderAll();
+    toast('VM "'+name+'" queued (demo mode — backend offline)','warn');
+    addNotif('🚀','VM queued','Pipeline started for "'+name+'" (demo mode).');
+    showTab('machines',document.getElementById('si-machines'));
+    // Simulate provisioning complete after 15s
+    setTimeout(()=>{
+      vm.status='running'; vm.ip='192.168.0.'+(Math.floor(Math.random()*200)+50);
+      vm.cpu_usage=Math.floor(Math.random()*40)+5;
+      vm.lastActive=Date.now();
+      saveState(); renderAll();
+      toast('VM "'+name+'" is ready! IP: '+vm.ip,'success');
+      addNotif('✅','VM ready','"'+name+'" is running at '+vm.ip);
+    },15000);
+  }).finally(()=>{btn.disabled=false;btn.textContent='Deploy VM';});
+}
+
+function pollBuild(vm){
+  if(!vm.buildNumber) return;
+  const t=setInterval(async()=>{
+    try{
+      const r=await fetch(apiBase+'/api/vms/status/'+vm.buildNumber);
+      const d=await r.json();
+      if(!d.building){
+        clearInterval(t);
+        vm.status=d.status==='SUCCESS'?'running':'failed';
+        if(d.ip) vm.ip=d.ip;
+        vm.lastActive=Date.now();
+        saveState(); renderAll();
+        if(vm.status==='running'){
+          toast('VM "'+vm.name+'" is ready! IP: '+vm.ip,'success');
+          addNotif('✅','VM ready','"'+vm.name+'" running at '+(vm.ip||'unknown'));
+        } else {
+          toast('VM "'+vm.name+'" failed to provision','error');
+          addNotif('❌','VM failed','"'+vm.name+'" provisioning failed.');
+        }
+      }
+    }catch{}
+  },8000);
+  pollTimers[vm.id]=t;
+}
+
+// ══════════════════════════════════════════════
+// VM ACTIONS
+// ══════════════════════════════════════════════
+async function destroyVM(id){
+  const vm=allVms.find(v=>v.id==id); if(!vm) return;
+  if(!confirm('Destroy "'+vm.name+'"? This cannot be undone.')) return;
+  vm.status='provisioning'; saveState(); renderAll();
+  try{
+    const r=await fetch(apiBase+'/api/vms/destroy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vmName:vm.name,vmId:vm.id})});
+    if(!r.ok) throw new Error();
+    toast('Destroying '+vm.name+'...','warn');
+    addNotif('🗑️','VM destroying','"'+vm.name+'" is being removed.');
+    setTimeout(()=>{allVms=allVms.filter(v=>v.id!=id);saveState();renderAll();},20000);
+  }catch{
+    // Demo fallback
+    setTimeout(()=>{allVms=allVms.filter(v=>v.id!=id);saveState();renderAll();toast(vm.name+' destroyed.','success');},3000);
+  }
+}
+
+function stopVM(id){
+  const vm=allVms.find(v=>v.id==id); if(!vm) return;
+  vm.status='stopped'; vm.cpu_usage=0; vm.lastActive=Date.now();
+  saveState(); renderAll();
+  toast('"'+vm.name+'" stopped.','success');
+  addNotif('⏹️','VM stopped','"'+vm.name+'" has been stopped.');
+}
+function startVM(id){
+  const vm=allVms.find(v=>v.id==id); if(!vm) return;
+  vm.status='running'; vm.cpu_usage=Math.floor(Math.random()*30)+5; vm.lastActive=Date.now();
+  saveState(); renderAll();
+  toast('"'+vm.name+'" started.','success');
+  addNotif('▶️','VM started','"'+vm.name+'" is running.');
+}
+
+// ══════════════════════════════════════════════
+// EXPIRY CHECK
+// ══════════════════════════════════════════════
+function checkExpiry(){
+  if(!currentUser) return;
+  const now=new Date();
+  userVms().forEach(vm=>{
+    if(vm.status!=='running'&&vm.status!=='stopped') return;
+    const exp=new Date(vm.expiresAt);
+    const daysLeft=Math.ceil((exp-now)/86400000);
+    if(daysLeft<=3&&daysLeft>0){
+      addNotif('⏰','VM expiring soon','"'+vm.name+'" expires in '+daysLeft+' day(s).');
+    }
+    if(daysLeft<=0&&vm.status!=='expired'){
+      vm.status='expired';
+      saveState();
+      addNotif('🔴','VM expired','"'+vm.name+'" has expired and been stopped.');
+      toast('"'+vm.name+'" has expired.','error');
+    }
+  });
+  // 30 min plan expiry check
+  const planExp=new Date(currentUser.planExpiry);
+  const planDays=Math.ceil((planExp-now)/86400000);
+  if(planDays<=3&&planDays>0&&currentUser.plan){
+    addNotif('💳','Plan expiring','Your '+currentUser.plan+' plan expires in '+planDays+' day(s).');
+  }
+  renderAll();
+}
+
+// ══════════════════════════════════════════════
+// STATS TICK (simulated live monitoring)
+// ══════════════════════════════════════════════
+function startStatsTick(){
+  setInterval(()=>{
+    if(!currentUser) return;
+    const running=userVms().filter(v=>v.status==='running');
+    running.forEach(vm=>{
+      vm.cpu_usage=Math.min(100,Math.max(1,vm.cpu_usage+(Math.random()*10-5)));
+      vm.bw_used=(vm.bw_used||0)+Math.random()*0.5;
+    });
+    // Idle detection: VM running >5 min with no manual action
+    running.forEach(vm=>{
+      if(Date.now()-vm.lastActive>300000){
+        document.getElementById('idleWarning').style.display='flex';
+        if(!idleTimers[vm.id]){
+          idleTimers[vm.id]=true;
+          addNotif('⚠️','Idle VM detected','"'+vm.name+'" has been running for 5+ min with no activity.');
+        }
+      }
+    });
+    if(running.length===0) document.getElementById('idleWarning').style.display='none';
+    // CPU history
+    const avgCpu=running.length?running.reduce((a,v)=>a+v.cpu_usage,0)/running.length:0;
+    cpuHistory.push(Math.round(avgCpu)); cpuHistory.shift();
+    vmHistory.push(running.length); vmHistory.shift();
+    saveState();
+    updateStatsCards();
+    checkExpiry();
+  },5000);
+}
+
+function updateStatsCards(){
+  if(!currentUser) return;
+  const running=userVms().filter(v=>v.status==='running');
+  const prov=userVms().filter(v=>v.status==='provisioning');
+  const avgCpu=running.length?Math.round(running.reduce((a,v)=>a+v.cpu_usage,0)/running.length):0;
+  const totalBw=userVms().reduce((a,v)=>a+(v.bw_used||0),0);
+  const planInfo=PLAN_LIMITS[currentUser.plan]||{price:0,label:'None',bw:0};
+
+  document.getElementById('ov-active').textContent=running.length+(prov.length?' ('+prov.length+' prov.)':'');
+  document.getElementById('ov-cpu').textContent=avgCpu+'%';
+  document.getElementById('ov-bw').textContent=totalBw.toFixed(1)+' GB';
+  document.getElementById('ov-bw-sub').textContent='of '+(planInfo.bw>=999999?'Unlimited':planInfo.bw/1024+' TB');
+  document.getElementById('ov-bill').textContent=planInfo.price+' TND';
+  document.getElementById('ov-plan-label').textContent=planInfo.label+' plan';
+  const bwPct=planInfo.bw>=999999?5:Math.min(100,(totalBw/(planInfo.bw/1024))*100);
+  document.getElementById('bw-fill').style.width=bwPct+'%';
+  document.getElementById('ov-welcome').textContent='Welcome back, '+currentUser.name;
+  renderMiniChart('chart-cpu',cpuHistory,'var(--success)');
+  renderMiniChart('chart-vms',vmHistory,'var(--cyan)');
+}
+
+function renderMiniChart(id,data,color){
+  const el=document.getElementById(id); if(!el) return;
+  const max=Math.max(...data,1);
+  el.innerHTML=data.map(v=>`<div class="mini-bar" style="height:${Math.max(2,Math.round((v/max)*100))}%;background:${color}"></div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════
+function renderAll(){
+  if(!currentUser) return;
+  renderVmList();
+  updateStatsCards();
+  renderBilling();
+  renderAdmin();
+  renderNotifs();
+  // Deploy tab subscription gate
+  if(hasPlan()){
+    document.getElementById('subGateDiv').style.display='none';
+    document.getElementById('deployFormDiv').style.display='block';
+  } else {
+    document.getElementById('subGateDiv').style.display='block';
+    document.getElementById('deployFormDiv').style.display='none';
+  }
+}
+
+function renderVmList(){
+  const vms=userVms();
+  const now=new Date();
+  const makeRows=(list)=>list.map(vm=>{
+    const exp=new Date(vm.expiresAt);
+    const daysLeft=Math.max(0,Math.ceil((exp-now)/86400000));
+    const pct=Math.min(100,Math.round((1-daysLeft/30)*100));
+    const fillColor=daysLeft>7?'var(--success)':daysLeft>2?'var(--warn)':'var(--danger)';
+    const actions=vm.status==='running'
+      ?`<button class="btn btn-warn btn-xs" onclick="stopVM(${vm.id})">Stop</button>
+        <button class="btn btn-danger btn-xs" onclick="destroyVM(${vm.id})" style="margin-left:4px">Destroy</button>`
+      :vm.status==='stopped'
+      ?`<button class="btn btn-success btn-xs" onclick="startVM(${vm.id})">Start</button>
+        <button class="btn btn-danger btn-xs" onclick="destroyVM(${vm.id})" style="margin-left:4px">Destroy</button>`
+      :vm.status==='provisioning'
+      ?'<span style="font-size:.78rem;color:var(--warn)">⏳ Wait...</span>'
+      :vm.status==='expired'
+      ?'<button class="btn btn-danger btn-xs" onclick="destroyVM('+vm.id+')">Remove</button>'
+      :'<span style="font-size:.78rem;color:var(--danger)">Failed</span>';
+    return `<tr>
+      <td><b>${vm.name}</b><br/><span style="font-size:.73rem;color:var(--muted)">${vm.ip||'Pending IP...'}</span></td>
+      <td style="color:var(--muted)">${vm.cpu} vCPU · ${vm.ram} GB · ${vm.disk} GB</td>
+      <td style="color:var(--muted);font-size:.8rem">${vm.os}</td>
+      <td>${statusBadge(vm.status)}</td>
+      <td style="font-size:.78rem;color:var(--cyan)">${vm.status==='running'?Math.round(vm.cpu_usage)+'%':'—'}</td>
+      <td style="min-width:100px">
+        <div class="expiry-row"><span>${daysLeft}d</span><div class="bar"><div class="fill" style="width:${pct}%;background:${fillColor}"></div></div></div>
+      </td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join('');
+
+  const tableHtml=(rows,cols)=>`<table class="vm-table">
+    <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+  const cols=['Name','Specs','OS','Status','CPU','Expires','Actions'];
+
+  if(vms.length===0){
+    const empty='<div class="empty-state"><div class="es-icon">🖥️</div><p>No VMs yet. <a onclick="showTab(\'deploy\',document.getElementById(\'si-deploy\'))" style="color:var(--cyan);cursor:pointer">Deploy your first one.</a></p></div>';
+    document.getElementById('ov-vm-list').innerHTML=empty;
+    document.getElementById('vm-list-full').innerHTML=empty;
+  } else {
+    document.getElementById('ov-vm-list').innerHTML=tableHtml(makeRows(vms.slice(-3)),cols);
+    document.getElementById('vm-list-full').innerHTML=tableHtml(makeRows(vms),cols);
+  }
+}
+
+function statusBadge(s){
+  const m={running:['s-running','● Running'],provisioning:['s-provisioning','⏳ Provisioning'],failed:['s-failed','✗ Failed'],stopped:['s-stopped','■ Stopped'],expired:['s-expired','⌛ Expired']};
+  const[cls,label]=m[s]||['s-stopped',s];
+  return `<span class="status-badge ${cls}">${label}</span>`;
+}
+
+function renderBilling(){
+  if(!currentUser) return;
+  const p=PLAN_LIMITS[currentUser.plan]||{price:0,label:'None',vms:0};
+  const exp=new Date(currentUser.planExpiry);
+  document.getElementById('bill-plan').textContent=p.label;
+  document.getElementById('bill-price').textContent=p.price+' TND/month';
+  document.getElementById('bill-expires').textContent=exp.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('bill-vmlimit').textContent=p.vms>=999?'Unlimited':p.vms+' VMs';
+  const items=userVms().filter(v=>v.status!=='expired');
+  document.getElementById('bill-items').innerHTML=items.length
+    ?items.map(v=>`<div class="bill-row"><span>${v.name} (${v.plan})</span><span>${PLAN_LIMITS[v.plan]?.price||0} TND</span></div>`).join('')
+    :'<div class="bill-row"><span style="color:var(--muted)">No active VMs</span><span>0 TND</span></div>';
+  document.getElementById('bill-total').textContent=p.price+' TND';
+  const months=['Jan','Feb','Mar','Apr','May'];
+  document.getElementById('bill-history').innerHTML=months.map((m,i)=>`<div class="bill-row"><span>${m} 2026</span><span>${p.price} TND <button class="btn btn-ghost btn-xs" onclick="toast('Downloading invoice...','success')">PDF</button></span></div>`).join('');
+}
+
+function renderAdmin(){
+  if(!currentUser||currentUser.role!=='admin') return;
+  // All VMs
+  const rows=allVms.map(vm=>`<tr>
+    <td><b>${vm.name}</b><br/><span style="font-size:.73rem;color:var(--muted)">${vm.ip||'—'}</span></td>
+    <td style="font-size:.8rem;color:var(--muted)">${vm.userName||vm.userEmail}</td>
+    <td style="color:var(--muted)">${vm.cpu}vCPU·${vm.ram}GB</td>
+    <td>${statusBadge(vm.status)}</td>
+    <td style="font-size:.8rem;color:var(--muted)">${new Date(vm.expiresAt).toLocaleDateString()}</td>
+    <td>
+      ${vm.status==='running'?`<button class="btn btn-warn btn-xs" onclick="adminStopVm(${vm.id})">Stop</button>`:''}
+      <button class="btn btn-danger btn-xs" onclick="adminDestroyVm(${vm.id})" style="margin-left:4px">Destroy</button>
+    </td>
+  </tr>`).join('');
+  document.getElementById('admin-vm-list').innerHTML=allVms.length
+    ?`<table class="vm-table"><thead><tr><th>Name</th><th>Owner</th><th>Specs</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`
+    :'<div class="empty-state"><div class="es-icon">🖥️</div><p>No VMs in system.</p></div>';
+  document.getElementById('admin-vm-count').textContent=allVms.length+' total VMs';
+
+  // Users
+  document.getElementById('admin-user-list').innerHTML=users.map(u=>`<tr>
+    <td><b>${u.name}</b></td>
+    <td style="color:var(--muted)">${u.email}</td>
+    <td><span style="color:var(--cyan)">${u.plan||'None'}</span></td>
+    <td>${allVms.filter(v=>v.userId===u.id).length}</td>
+    <td style="color:var(--muted);font-size:.8rem">${new Date(u.joined).toLocaleDateString()}</td>
+    <td>${u.role==='admin'?'<span style="color:var(--purple);font-size:.8rem">Admin</span>':`<button class="btn btn-ghost btn-xs" onclick="adminDeleteUser('${u.id}')">Remove</button>`}</td>
+  </tr>`).join('');
+
+  // Billing
+  const revenue=users.reduce((a,u)=>(PLAN_LIMITS[u.plan]?.price||0)+a,0);
+  const subs=users.filter(u=>u.plan&&new Date(u.planExpiry)>new Date()).length;
+  document.getElementById('adm-rev').textContent=revenue+' TND';
+  document.getElementById('adm-subs').textContent=subs;
+  document.getElementById('adm-vms').textContent=allVms.length;
+  const plans={basic:0,pro:0,enterprise:0};
+  users.forEach(u=>{if(plans[u.plan]!==undefined)plans[u.plan]++;});
+  document.getElementById('adm-breakdown').innerHTML=Object.entries(plans).map(([p,c])=>`<div class="bill-row"><span>${p.charAt(0).toUpperCase()+p.slice(1)}</span><span>${c} users · ${c*PLAN_LIMITS[p].price} TND</span></div>`).join('');
+}
+
+function adminStopVm(id){const v=allVms.find(x=>x.id==id);if(v){v.status='stopped';saveState();renderAll();toast('VM stopped by admin','warn');}}
+function adminDestroyVm(id){if(!confirm('Destroy this VM?'))return;allVms=allVms.filter(v=>v.id!=id);saveState();renderAll();toast('VM destroyed by admin','success');}
+function adminDeleteUser(id){if(!confirm('Delete this user?'))return;users=users.filter(u=>u.id!==id);allVms=allVms.filter(v=>v.userId!==id);saveState();renderAll();toast('User removed','success');}
+
+// ══════════════════════════════════════════════
+// NOTIFICATIONS
+// ══════════════════════════════════════════════
+function addNotif(icon,title,text){
+  notifications.unshift({icon,title,text,time:new Date().toISOString()});
+  if(notifications.length>20) notifications.pop();
+  saveState(); renderNotifs();
+  document.getElementById('notifBadge').classList.add('show');
+}
+function renderNotifs(){
+  const list=document.getElementById('notifList');
+  if(notifications.length===0){list.innerHTML='<div class="notif-empty">No notifications yet</div>';return;}
+  list.innerHTML=notifications.map(n=>`<div class="notif-item">
+    <div class="ni-icon">${n.icon}</div>
+    <div class="ni-text"><b>${n.title}</b>${n.text}</div>
+    <div class="ni-time">${timeSince(n.time)}</div>
+  </div>`).join('');
+}
+function clearNotifs(){notifications=[];saveState();renderNotifs();document.getElementById('notifBadge').classList.remove('show');}
+function toggleNotifDropdown(){
+  document.getElementById('notifDropdown').classList.toggle('open');
+  document.getElementById('notifBadge').classList.remove('show');
+}
+function timeSince(iso){
+  const s=Math.floor((Date.now()-new Date(iso))/1000);
+  if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';
+}
+document.addEventListener('click',e=>{if(!e.target.closest('#notifBell')&&!e.target.closest('#notifDropdown'))document.getElementById('notifDropdown').classList.remove('open');});
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  const icons={success:'✅',error:'❌',warn:'⚠️',info:'ℹ️'};
+  el.className='toast '+(type==='error'?'error':type==='success'?'success':type==='warn'?'warn':'');
+  el.innerHTML=`<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>el.remove(),4500);
+}
+
+// ══════════════════════════════════════════════
+// API HEALTH
+// ══════════════════════════════════════════════
+async function checkApi(){
+  try{
+    const r=await fetch(apiBase+'/health',{signal:AbortSignal.timeout(3000)});
+    const ok=r.ok;
+    document.getElementById('apiDot').className='api-dot '+(ok?'online':'offline');
+    document.getElementById('apiLabel').textContent=ok?'API online':'API error';
+  }catch{
+    document.getElementById('apiDot').className='api-dot offline';
+    document.getElementById('apiLabel').textContent='API offline';
+  }
+}
+setInterval(checkApi,30000);
+
+// ══════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════
+function showTab(id,el){
+  ['overview','machines','deploy','billing','settings','admin'].forEach(t=>{
+    const el2=document.getElementById('tab-'+t); if(el2) el2.style.display='none';
+  });
+  const tab=document.getElementById('tab-'+id); if(tab) tab.style.display='block';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(id==='deploy') renderAll();
+}
+function showAdminTab(id,el){
+  ['all-vms','all-users','all-billing'].forEach(t=>{
+    const e=document.getElementById('atab-'+t); if(e) e.style.display='none';
+  });
+  const t=document.getElementById('atab-'+id); if(t) t.style.display='block';
+  document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+function goHome(){
+  if(currentUser){showTab('overview',document.getElementById('si-overview'));return;}
+  document.getElementById('dashPage').classList.remove('active');
+  document.getElementById('landingPage').classList.add('active');
+}
+function scrollToSection(id){
+  if(!document.getElementById('landingPage').classList.contains('active')){
+    goHome(); setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth'}),100);
+  } else document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+}
+function planChanged(){
+  const p=document.getElementById('vmPlan').value;
+  document.getElementById('customSpecs').style.display=p==='custom'?'block':'none';
+  const costs={basic:29,pro:89,enterprise:249};
+  document.getElementById('dCost').textContent=(costs[p]||calcCustomCost())+' TND/mo';
+}
+function calcCustomCost(){return Math.round(parseInt(document.getElementById('dCpu').value)*4+parseInt(document.getElementById('dRam').value)*1.8+parseInt(document.getElementById('dDisk').value)*0.05);}
+function dCalc(){document.getElementById('dCpuV').textContent=document.getElementById('dCpu').value;document.getElementById('dRamV').textContent=document.getElementById('dRam').value;document.getElementById('dDiskV').textContent=document.getElementById('dDisk').value;document.getElementById('dCost').textContent=calcCustomCost()+' TND/mo';}
+function calcPrice(){
+  const cpu=+document.getElementById('bCpu').value,ram=+document.getElementById('bRam').value,disk=+document.getElementById('bDisk').value;
+  document.getElementById('bCpuVal').textContent=cpu+' core'+(cpu>1?'s':'');
+  document.getElementById('bRamVal').textContent=ram+' GB';
+  document.getElementById('bDiskVal').textContent=disk+' GB';
+  document.getElementById('bPrice').innerHTML=Math.round(cpu*4+ram*1.8+disk*0.05)+' TND<small style="font-size:.9rem;color:var(--muted)">/mo</small>';
+}
+function selOs(el){document.querySelectorAll('.os-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');}
+function saveSettings(){
+  currentUser.name=document.getElementById('setName').value.trim();
+  const u=users.find(x=>x.id===currentUser.id); if(u) u.name=currentUser.name;
+  saveState(); toast('Settings saved!','success');
+}
+function saveApiUrl(){
+  apiBase=document.getElementById('apiUrlInput').value.trim();
+  localStorage.setItem('voltcore_api',apiBase);
+  checkApi(); toast('API URL saved!','success');
+}
+
+// Init
+calcPrice(); checkApi();
+</script>
+</body>
+</html>
