@@ -7,7 +7,7 @@ terraform {
   }
   backend "s3" {
     bucket                      = "voltcore-tfstate"
-    key                         = "vms/terraform.tfstate"
+    key                         = "vms/default.tfstate"
     region                      = "us-east-1"
     endpoints                   = { s3 = "http://192.168.0.143:9000" }
     skip_credentials_validation = true
@@ -56,9 +56,9 @@ resource "proxmox_virtual_environment_vm" "client_vm" {
   }
 
   network_device {
-    bridge   = "vmbr0"
-    model    = "virtio"
-    firewall = false
+    bridge      = "vmbr0"
+    model       = "virtio"
+    firewall    = false
   }
 
   operating_system {
