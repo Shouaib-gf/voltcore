@@ -2,5 +2,6 @@
 terraform/.terraform/
 terraform/.terraform.lock.hcl
 terraform/tfplan
+minio/
 **/__pycache__/
 *.pyc

@@ -1,6 +1,5 @@
 pipeline {
   agent any
-
   parameters {
     string(name: 'VM_NAME',           defaultValue: '')
     string(name: 'VM_ID',             defaultValue: '')
@@ -14,20 +13,16 @@ pipeline {
     string(name: 'DISK_GB',           defaultValue: '40')
     string(name: 'ACTION',            defaultValue: 'apply')
   }
-
   stages {
-
     stage('Validate') {
       steps {
         script {
-          if (!params.VM_NAME || !params.VM_ID || !params.CLIENT_ID) {
+          if (!params.VM_NAME || !params.VM_ID || !params.CLIENT_ID)
             error("Missing required parameters: VM_NAME, VM_ID, CLIENT_ID")
-          }
           echo "VM: ${params.VM_NAME} | Action: ${params.ACTION}"
         }
       }
     }
-
     stage('TF Init') {
       steps {
         withCredentials([
@@ -36,7 +31,6 @@ pipeline {
         ]) {
           sh '''
             cd /opt/voltcore/terraform
-
             terraform init -reconfigure \
               -backend-config="access_key=$AWS_ACCESS_KEY_ID" \
               -backend-config="secret_key=$AWS_SECRET_ACCESS_KEY"
@@ -44,7 +38,6 @@ pipeline {
         }
       }
     }
-
     stage('TF Plan') {
       steps {
         withCredentials([
@@ -54,10 +47,8 @@ pipeline {
         ]) {
           sh '''
             cd /opt/voltcore/terraform
-
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-
             terraform plan -out=tfplan \
               -var "proxmox_api_url=https://192.168.0.143:8006/api2/json" \
               -var "vm_name=$VM_NAME" \
@@ -74,7 +65,6 @@ pipeline {
         }
       }
     }
-
     stage('TF Apply') {
       steps {
         withCredentials([
@@ -84,39 +74,23 @@ pipeline {
         ]) {
           sh '''
             cd /opt/voltcore/terraform
-
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-
             terraform apply -auto-approve tfplan
           '''
         }
       }
     }
-
     stage('Output') {
       when { expression { params.ACTION == 'apply' } }
       steps {
-        script {
-
-          // Install jq if not present
-          sh 'apt-get update && apt-get install -y jq || apk add --no-cache jq'
-
-          def ip = sh(
-            script: '''
-              cd /opt/voltcore/terraform
-              terraform output -json vm_ipv4 | jq -r '.[1][0]' 2>/dev/null || echo pending
-            ''',
-            returnStdout: true
-          ).trim()
-
-          echo "VM ${params.VM_NAME} IP: ${ip}"
-        }
+        sh '''
+          cd /opt/voltcore/terraform
+          terraform output -json vm_ipv4 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+' | grep -v 127 | head -n1 || echo pending
+        '''
       }
     }
-
   }
-
   post {
     success { echo "SUCCESS: ${params.VM_NAME}" }
     failure { echo "FAILED: ${params.VM_NAME}" }
