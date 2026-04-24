@@ -29,12 +29,13 @@ pipeline {
           string(credentialsId: 'minio-access-key', variable: 'AWS_ACCESS_KEY_ID'),
           string(credentialsId: 'minio-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
-          sh '''
+          sh """
             cd /opt/voltcore/terraform
             terraform init -reconfigure \
-              -backend-config="access_key=$AWS_ACCESS_KEY_ID" \
-              -backend-config="secret_key=$AWS_SECRET_ACCESS_KEY"
-          '''
+              -backend-config="access_key=\$AWS_ACCESS_KEY_ID" \
+              -backend-config="secret_key=\$AWS_SECRET_ACCESS_KEY" \
+              -backend-config="key=vms/${params.VM_NAME}.tfstate"
+          """
         }
       }
     }
