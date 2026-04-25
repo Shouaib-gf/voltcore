@@ -5,1204 +5,946 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>VoltCore</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#0a0e1a;--bg2:#111827;--bg3:#1a2235;
-  --cyan:#00d4ff;--blue:#3b82f6;
-  --text:#e2e8f0;--muted:#94a3b8;--border:#1e2d45;
-  --success:#10b981;--warn:#f59e0b;--danger:#ef4444;--purple:#8b5cf6;
+  --bg:#04060d;--bg2:#080d18;--bg3:#0d1420;--bg4:#111926;
+  --blue:#556bf7;--blue2:rgba(85,107,247,0.1);--blue3:rgba(85,107,247,0.05);
+  --cyan:#00d4ff;--cyan2:rgba(0,212,255,0.08);
+  --text:#eaf0ff;--muted:#6b7a9f;--border:rgba(85,107,247,0.15);
+  --success:#3fb950;--warn:#d29922;--danger:#f85149;--purple:#a371f7;
+  --glow-blue:rgba(85,107,247,0.25);
+  --font-main:'Space Grotesk',sans-serif;
+  --font-display:'Syne',sans-serif;
 }
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-a{color:inherit;text-decoration:none}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-main);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 .page{display:none}.page.active{display:block}
+
+/* SPLASH CURSOR CANVAS */
+#splashCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:1000}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes glow{0%,100%{box-shadow:0 0 30px var(--glow-blue)}50%{box-shadow:0 0 60px var(--glow-blue),0 0 120px rgba(85,107,247,0.1)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes borderGlow{0%,100%{border-color:rgba(85,107,247,0.2)}50%{border-color:rgba(85,107,247,0.5)}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes rotateY{from{transform:perspective(1000px) rotateY(-5deg)}to{transform:perspective(1000px) rotateY(5deg)}}
+
+.anim-fade-up{animation:fadeUp .6s cubic-bezier(.22,.68,0,1.2) forwards}
+.anim-delay-1{animation-delay:.12s;opacity:0}
+.anim-delay-2{animation-delay:.24s;opacity:0}
+.anim-delay-3{animation-delay:.36s;opacity:0}
+.anim-delay-4{animation-delay:.48s;opacity:0}
+
 /* NAV */
-nav{position:sticky;top:0;z-index:100;background:rgba(10,14,26,0.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px}
-.logo{font-size:1.25rem;font-weight:700;color:var(--cyan);letter-spacing:-.5px;cursor:pointer}
-.logo span{color:var(--text)}
-.nav-links{display:flex;gap:2rem;font-size:.875rem;color:var(--muted)}
-.nav-links a{cursor:pointer;transition:color .15s}.nav-links a:hover{color:var(--text)}
-.nav-actions{display:flex;gap:.75rem;align-items:center}
-.api-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);transition:background .3s}
-.api-dot.online{background:var(--success)}.api-dot.offline{background:var(--danger)}
-.api-status{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--muted)}
-/* NOTIFICATION BELL */
-.notif-bell{position:relative;cursor:pointer;padding:.4rem;border-radius:6px;transition:background .15s}
-.notif-bell:hover{background:var(--bg3)}
-.notif-bell svg{width:18px;height:18px;fill:var(--muted)}
-.notif-badge{position:absolute;top:2px;right:2px;width:8px;height:8px;background:var(--danger);border-radius:50%;display:none}
-.notif-badge.show{display:block}
-.notif-dropdown{position:absolute;top:56px;right:1rem;width:320px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;z-index:200;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.notif-dropdown.open{display:block}
-.notif-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.85rem;font-weight:600}
-.notif-list{max-height:280px;overflow-y:auto}
-.notif-item{padding:.75rem 1rem;border-bottom:1px solid rgba(30,45,69,.5);font-size:.82rem;display:flex;gap:.75rem;align-items:flex-start;cursor:pointer}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem;background:rgba(4,6,13,0.7);backdrop-filter:blur(24px) saturate(180%);border-bottom:1px solid var(--border)}
+.logo{font-family:var(--font-display);font-size:1.25rem;font-weight:800;cursor:pointer;display:flex;align-items:center;gap:.5rem;letter-spacing:-.5px}
+.logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#fff;font-weight:700;box-shadow:0 0 20px rgba(85,107,247,0.4)}
+.logo span.dim{color:var(--muted)}
+.nav-links{display:flex;gap:2rem;font-size:.84rem;color:var(--muted)}
+.nav-links a{cursor:pointer;transition:color .2s;position:relative;padding:.25rem 0}
+.nav-links a:hover{color:var(--text)}
+.nav-links a::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1px;background:var(--blue);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-right{display:flex;align-items:center;gap:.75rem}
+.notif-bell{position:relative;cursor:pointer;width:36px;height:36px;border-radius:9px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--muted);background:var(--bg3)}
+.notif-bell:hover{border-color:var(--blue);color:var(--blue);background:var(--blue2)}
+.notif-bell svg{width:15px;height:15px;fill:currentColor}
+.notif-badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--danger);font-size:.6rem;font-weight:700;display:none;align-items:center;justify-content:center;border:2px solid var(--bg);color:#fff}
+.notif-badge.show{display:flex}
+.notif-dropdown{position:fixed;top:64px;right:1.5rem;width:340px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;z-index:300;display:none;box-shadow:0 20px 60px rgba(0,0,0,.8),0 0 0 1px rgba(85,107,247,0.1)}
+.notif-dropdown.open{display:block;animation:fadeUp .2s ease}
+.notif-hdr{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:600;font-family:var(--font-display)}
+.notif-clear{color:var(--blue);cursor:pointer;font-weight:400;font-family:var(--font-main)}
+.notif-list{max-height:300px;overflow-y:auto}
+.notif-item{padding:.75rem 1rem;border-bottom:1px solid rgba(85,107,247,0.08);font-size:.8rem;display:flex;gap:.75rem;align-items:flex-start;cursor:pointer;transition:background .15s}
 .notif-item:hover{background:var(--bg3)}
-.notif-item .ni-icon{font-size:1rem;margin-top:1px}
-.notif-item .ni-text{flex:1;color:var(--muted);line-height:1.5}
-.notif-item .ni-text b{color:var(--text);display:block}
-.notif-item .ni-time{font-size:.72rem;color:var(--muted);white-space:nowrap}
-.notif-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.85rem}
-/* BTNS */
-.btn{padding:.45rem 1.1rem;border-radius:6px;font-size:.875rem;cursor:pointer;border:none;font-weight:500;transition:all .15s}
-.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--cyan)}
-.btn-primary{background:var(--cyan);color:#0a0e1a}.btn-primary:hover{background:#00b8d9}.btn-primary:disabled{opacity:.5;cursor:not-allowed}
-.btn-outline{background:transparent;color:var(--cyan);border:1px solid var(--cyan)}.btn-outline:hover{background:rgba(0,212,255,.08)}
-.btn-danger{background:var(--danger);color:#fff;border:none}.btn-danger:hover{background:#dc2626}
-.btn-success{background:var(--success);color:#fff;border:none}.btn-success:hover{background:#059669}
-.btn-warn{background:var(--warn);color:#0a0e1a;border:none}
-.btn-sm{padding:.3rem .75rem;font-size:.8rem}
-.btn-xs{padding:.2rem .5rem;font-size:.75rem}
+.ni-icon{font-size:.95rem;margin-top:1px;flex-shrink:0}
+.ni-body{flex:1;color:var(--muted);line-height:1.5}
+.ni-body b{color:var(--text);display:block;margin-bottom:2px}
+.ni-time{font-size:.7rem;color:var(--muted);white-space:nowrap}
+.notif-empty{padding:2.5rem 1rem;text-align:center;color:var(--muted);font-size:.82rem}
+
+/* BUTTONS */
+.btn{padding:.45rem 1.1rem;border-radius:8px;font-size:.84rem;cursor:pointer;border:none;font-weight:500;transition:all .2s;display:inline-flex;align-items:center;gap:.4rem;font-family:var(--font-main)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--blue);background:var(--blue2)}
+.btn-primary{background:linear-gradient(135deg,var(--blue),#7b8df8);color:#fff;font-weight:600;box-shadow:0 4px 20px rgba(85,107,247,0.3)}.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(85,107,247,0.4)}.btn-primary:active{transform:translateY(0)}
+.btn-outline{background:transparent;color:var(--blue);border:1px solid rgba(85,107,247,.4)}.btn-outline:hover{background:var(--blue2);border-color:var(--blue)}
+.btn-danger{background:rgba(248,81,73,0.1);color:var(--danger);border:1px solid rgba(248,81,73,0.3)}.btn-danger:hover{background:rgba(248,81,73,0.2)}
+.btn-success{background:rgba(63,185,80,0.1);color:var(--success);border:1px solid rgba(63,185,80,0.3)}.btn-success:hover{background:rgba(63,185,80,0.2)}
+.btn-warn{background:rgba(210,153,34,0.1);color:var(--warn);border:1px solid rgba(210,153,34,0.3)}.btn-warn:hover{background:rgba(210,153,34,0.2)}
+.btn-sm{padding:.3rem .75rem;font-size:.78rem}
+.btn-xs{padding:.2rem .5rem;font-size:.73rem}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none !important}
+
 /* HERO */
-.hero{min-height:88vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4rem 2rem;position:relative;overflow:hidden}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:48px 48px;opacity:.3}
-.hero-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(0,212,255,.12) 0%,transparent 70%);pointer-events:none}
-.hero-content{position:relative;z-index:1;max-width:720px}
-.badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--cyan);font-size:.78rem;padding:.3rem .9rem;border-radius:999px;margin-bottom:1.5rem}
-.pulse{width:6px;height:6px;background:var(--cyan);border-radius:50%;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-h1{font-size:3.5rem;font-weight:700;line-height:1.1;margin-bottom:1.25rem;letter-spacing:-1px}
-h1 span{color:var(--cyan)}
-.hero p{font-size:1.15rem;color:var(--muted);margin-bottom:2.5rem;line-height:1.7}
-.hero-btns{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-.hero-stats{display:flex;gap:3rem;justify-content:center;margin-top:4rem;padding-top:3rem;border-top:1px solid var(--border)}
-.hero-stats .stat h3{font-size:1.75rem;font-weight:700;color:var(--cyan)}
-.hero-stats .stat p{font-size:.85rem;color:var(--muted);margin-top:2px}
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6rem 2rem 4rem;position:relative;overflow:hidden}
+#heroCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.hero-noise{position:absolute;inset:0;opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:128px;z-index:1}
+.hero-orb{position:absolute;border-radius:50%;filter:blur(100px);z-index:0;pointer-events:none}
+.hero-orb-1{width:600px;height:600px;background:radial-gradient(circle,rgba(85,107,247,0.18) 0%,transparent 70%);top:-100px;left:50%;transform:translateX(-50%)}
+.hero-orb-2{width:400px;height:400px;background:radial-gradient(circle,rgba(0,212,255,0.1) 0%,transparent 70%);bottom:0;right:-100px}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(85,107,247,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(85,107,247,0.06) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 60% at 50% 50%,black,transparent);z-index:1}
+.hero-content{position:relative;z-index:2;max-width:820px}
+.hero-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(85,107,247,0.08);border:1px solid rgba(85,107,247,0.25);color:#9babf5;font-size:.74rem;padding:.4rem 1.1rem;border-radius:999px;margin-bottom:2rem;font-weight:500;letter-spacing:.3px;backdrop-filter:blur(8px)}
+.hero-pill-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);animation:pulse 2s infinite;box-shadow:0 0 8px var(--blue)}
+h1{font-family:var(--font-display);font-size:4.5rem;font-weight:800;line-height:1.04;margin-bottom:1.4rem;letter-spacing:-2px}
+h1 .grad{background:linear-gradient(135deg,#7b8df8 0%,var(--cyan) 50%,#a371f7 100%);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:shimmer 4s linear infinite}
+.hero-sub{font-size:1.1rem;color:var(--muted);line-height:1.8;margin-bottom:2.75rem;max-width:580px;margin-left:auto;margin-right:auto}
+.hero-btns{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-bottom:4.5rem}
+.hero-stats{display:flex;gap:0;border:1px solid rgba(85,107,247,0.2);border-radius:14px;overflow:hidden;background:rgba(8,13,24,0.8);backdrop-filter:blur(16px);box-shadow:0 0 40px rgba(85,107,247,0.1)}
+.hero-stat{padding:1.4rem 2.2rem;text-align:center;border-right:1px solid rgba(85,107,247,0.15);position:relative}
+.hero-stat:last-child{border-right:none}
+.hero-stat h3{font-family:var(--font-display);font-size:1.7rem;font-weight:800;color:var(--blue);letter-spacing:-1px}
+.hero-stat p{font-size:.72rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.8px}
+
 /* SECTIONS */
-.section{padding:5rem 2rem;max-width:1100px;margin:0 auto}
-.section-label{text-align:center;color:var(--cyan);font-size:.8rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:.75rem}
-.section-title{text-align:center;font-size:2.2rem;font-weight:700;margin-bottom:1rem}
-.section-sub{text-align:center;color:var(--muted);font-size:1rem;margin-bottom:3rem}
-.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.25rem}
-.feature-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;transition:border-color .2s}
-.feature-card:hover{border-color:rgba(0,212,255,.4)}
-.feat-icon{width:40px;height:40px;border-radius:8px;background:rgba(0,212,255,.1);display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:1rem}
-.feature-card h3{font-size:1rem;font-weight:600;margin-bottom:.4rem}
-.feature-card p{font-size:.875rem;color:var(--muted);line-height:1.6}
+.section{padding:5.5rem 2rem;max-width:1100px;margin:0 auto}
+.sec-pill{display:inline-block;background:rgba(85,107,247,0.08);border:1px solid rgba(85,107,247,0.2);color:#9babf5;font-size:.7rem;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:.3rem .9rem;border-radius:999px;margin-bottom:.85rem}
+.sec-title{font-family:var(--font-display);font-size:2.4rem;font-weight:800;margin-bottom:.75rem;letter-spacing:-.8px}
+.sec-sub{color:var(--muted);font-size:.95rem;margin-bottom:3.5rem;max-width:520px;line-height:1.75}
+
+/* SPOTLIGHT CARD */
+.card-spotlight{position:relative;border-radius:1.25rem;border:1px solid rgba(85,107,247,0.15);background:linear-gradient(135deg,rgba(13,20,32,0.9),rgba(8,13,24,0.95));padding:1.75rem;overflow:hidden;--mouse-x:50%;--mouse-y:50%;--spotlight-color:rgba(85,107,247,0.15);transition:border-color .3s,transform .3s}
+.card-spotlight::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at var(--mouse-x) var(--mouse-y),var(--spotlight-color),transparent 70%);opacity:0;transition:opacity 0.4s ease;pointer-events:none;border-radius:inherit}
+.card-spotlight:hover::before,.card-spotlight:focus-within::before{opacity:1}
+.card-spotlight:hover{border-color:rgba(85,107,247,0.35);transform:translateY(-4px)}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(85,107,247,0.08);border:1px solid rgba(85,107,247,0.1);border-radius:16px;overflow:hidden}
+.feat-card{background:var(--bg2);padding:2rem 1.75rem;transition:background .25s;position:relative;overflow:hidden}
+.feat-card:hover{background:var(--bg3)}
+.feat-ic{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,rgba(85,107,247,0.15),rgba(85,107,247,0.05));border:1px solid rgba(85,107,247,0.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:1.1rem;box-shadow:0 4px 16px rgba(85,107,247,0.1)}
+.feat-card h3{font-family:var(--font-display);font-size:1rem;font-weight:700;margin-bottom:.5rem;letter-spacing:-.3px}
+.feat-card p{font-size:.83rem;color:var(--muted);line-height:1.7}
+
+/* 3D GRID CARD SECTION */
+.grid3d-wrap{perspective:1200px;display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+.grid3d-card{background:linear-gradient(135deg,rgba(13,20,32,0.9),rgba(8,13,24,0.95));border:1px solid rgba(85,107,247,0.12);border-radius:16px;padding:1.75rem;position:relative;transform-style:preserve-3d;transition:transform .4s cubic-bezier(.34,1.56,.64,1),border-color .3s,box-shadow .3s;cursor:default}
+.grid3d-card:hover{transform:perspective(800px) rotateX(4deg) rotateY(-4deg) translateZ(20px);border-color:rgba(85,107,247,0.4);box-shadow:0 20px 60px rgba(85,107,247,0.15),0 0 0 1px rgba(85,107,247,0.1)}
+.grid3d-card::after{content:'';position:absolute;inset:0;border-radius:16px;background:linear-gradient(135deg,rgba(255,255,255,0.05),transparent);pointer-events:none}
+
 /* PLANS */
 .plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
-.plan{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.75rem;position:relative}
-.plan.featured{border-color:var(--cyan);background:#0d1829}
-.plan-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--cyan);color:#0a0e1a;font-size:.72rem;font-weight:700;padding:3px 14px;border-radius:999px;white-space:nowrap}
-.plan-name{font-size:1rem;font-weight:600;color:var(--muted);margin-bottom:.5rem}
-.plan-price{font-size:2.5rem;font-weight:700;color:var(--text);margin-bottom:.25rem}
-.plan-price span{font-size:.9rem;font-weight:400;color:var(--muted)}
-.plan-desc{font-size:.85rem;color:var(--muted);margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid var(--border)}
-.plan-features{list-style:none;display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.75rem}
-.plan-features li{font-size:.875rem;display:flex;align-items:center;gap:8px;color:var(--muted)}
-.plan-features li .check{color:var(--success);font-weight:700}
+.plan-card{background:linear-gradient(135deg,rgba(13,20,32,0.95),rgba(8,13,24,0.98));border:1px solid rgba(85,107,247,0.12);border-radius:16px;padding:2rem;position:relative;transition:border-color .3s,transform .3s,box-shadow .3s}
+.plan-card:hover{border-color:rgba(85,107,247,.4);transform:translateY(-5px);box-shadow:0 20px 60px rgba(85,107,247,0.12)}
+.plan-card.featured{border-color:rgba(85,107,247,.4);background:linear-gradient(135deg,rgba(85,107,247,0.08),rgba(8,13,24,0.98));animation:glow 3s ease-in-out infinite}
+.plan-tag{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--blue),#7b8df8);color:#fff;font-size:.68rem;font-weight:700;padding:4px 16px;border-radius:999px;white-space:nowrap;box-shadow:0 4px 16px rgba(85,107,247,0.4);font-family:var(--font-display)}
+.plan-name{font-size:.78rem;font-weight:600;color:var(--muted);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:1.5px;font-family:var(--font-display)}
+.plan-price{font-family:var(--font-display);font-size:3rem;font-weight:800;color:var(--text);margin-bottom:.3rem;letter-spacing:-2px}
+.plan-price small{font-size:.85rem;font-weight:400;color:var(--muted);letter-spacing:0}
+.plan-desc{font-size:.82rem;color:var(--muted);margin-bottom:1.4rem;padding-bottom:1.4rem;border-bottom:1px solid var(--border)}
+.plan-feats{list-style:none;display:flex;flex-direction:column;gap:.65rem;margin-bottom:1.75rem}
+.plan-feats li{font-size:.83rem;display:flex;align-items:center;gap:10px;color:var(--muted)}
+.plan-feats li::before{content:'✓';color:var(--blue);font-weight:700;font-size:.85rem;background:rgba(85,107,247,0.1);width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(85,107,247,0.2);font-size:.7rem;padding-left:1px}
+
 /* BUILDER */
-.builder{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:700px;margin:0 auto}
-.builder-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem}
-.builder-label{font-size:.9rem;color:var(--muted)}
-.builder-val{font-size:.9rem;font-weight:600;color:var(--cyan);min-width:70px;text-align:right}
-input[type=range]{width:55%;accent-color:var(--cyan);height:4px}
-.os-opts{display:flex;gap:.75rem;flex-wrap:wrap}
-.os-opt{padding:.4rem 1rem;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:.85rem;cursor:pointer;transition:all .15s}
-.os-opt.selected,.os-opt:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,.08)}
-.price-box{margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.price-total{font-size:1.75rem;font-weight:700;color:var(--cyan)}
-/* DASHBOARD */
-.dash-layout{display:flex;min-height:calc(100vh - 60px)}
-.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);padding:1.25rem 0;flex-shrink:0}
-.sidebar-section{padding:0 .75rem;margin-bottom:1.5rem}
-.sidebar-label{font-size:.7rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;padding:0 .75rem;margin-bottom:.5rem}
-.nav-item{display:flex;align-items:center;gap:10px;padding:.55rem .75rem;border-radius:8px;font-size:.875rem;color:var(--muted);cursor:pointer;transition:all .15s;margin-bottom:2px}
-.nav-item:hover{background:var(--bg3);color:var(--text)}
-.nav-item.active{background:rgba(0,212,255,.1);color:var(--cyan)}
-.nav-item .ni{font-size:1rem;width:20px;text-align:center}
-.admin-badge{font-size:.65rem;background:var(--purple);color:#fff;padding:1px 6px;border-radius:4px;margin-left:auto}
-.dash-content{flex:1;padding:2rem;overflow-y:auto}
-.dash-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem}
-.dash-title{font-size:1.4rem;font-weight:600}
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.1rem 1.25rem}
-.stat-card .sc-label{font-size:.78rem;color:var(--muted);margin-bottom:.4rem}
-.stat-card .sc-val{font-size:1.5rem;font-weight:700}
-.stat-card .sc-sub{font-size:.75rem;color:var(--muted);margin-top:3px}
-.c-cyan{color:var(--cyan)}.c-green{color:var(--success)}.c-warn{color:var(--warn)}.c-danger{color:var(--danger)}.c-purple{color:var(--purple)}
-/* MINI CHART */
-.mini-chart{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:6px}
-.mini-bar{flex:1;background:rgba(0,212,255,.3);border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
-/* VM TABLE */
-.vm-table{width:100%;border-collapse:collapse;font-size:.875rem}
-.vm-table th{text-align:left;color:var(--muted);font-weight:500;font-size:.78rem;padding:.75rem 1rem;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
-.vm-table td{padding:.85rem 1rem;border-bottom:1px solid rgba(30,45,69,.5);vertical-align:middle}
+.builder-card{background:linear-gradient(135deg,rgba(13,20,32,0.95),rgba(8,13,24,0.98));border:1px solid rgba(85,107,247,0.15);border-radius:18px;padding:2.25rem;max-width:700px;margin:0 auto;box-shadow:0 0 80px rgba(85,107,247,0.05)}
+.build-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;gap:1rem}
+.build-label{font-size:.83rem;color:var(--muted);flex-shrink:0;min-width:110px;font-weight:500}
+.build-slider{flex:1}
+input[type=range]{width:100%;height:4px;cursor:pointer;-webkit-appearance:none;background:rgba(85,107,247,0.15);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--blue),#7b8df8);cursor:pointer;box-shadow:0 0 12px rgba(85,107,247,0.5);border:2px solid rgba(255,255,255,0.2)}
+.build-val{font-size:.85rem;font-weight:700;color:var(--blue);min-width:80px;text-align:right;font-family:var(--font-display)}
+.os-grid{display:flex;gap:.6rem;flex-wrap:wrap}
+.os-chip{padding:.4rem 1rem;border-radius:8px;border:1px solid rgba(85,107,247,0.15);background:transparent;color:var(--muted);font-size:.82rem;cursor:pointer;transition:all .2s;font-family:var(--font-main)}
+.os-chip.on{border-color:var(--blue);color:var(--blue);background:var(--blue2);box-shadow:0 0 16px rgba(85,107,247,0.15)}
+.price-strip{margin-top:2rem;padding-top:2rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.price-num{font-family:var(--font-display);font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* DASH */
+.dash-wrap{display:flex;min-height:calc(100vh - 60px);margin-top:60px}
+.sidebar{width:235px;background:var(--bg2);border-right:1px solid var(--border);padding:1.5rem 0;flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto}
+.sb-section{padding:0 .85rem;margin-bottom:1.75rem}
+.sb-label{font-size:.62rem;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;padding:0 .75rem;margin-bottom:.6rem;display:block;font-family:var(--font-display)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:.6rem .75rem;border-radius:9px;font-size:.83rem;color:var(--muted);cursor:pointer;transition:all .2s;margin-bottom:2px;border:1px solid transparent}
+.sb-item:hover{background:var(--bg3);color:var(--text)}
+.sb-item.active{background:rgba(85,107,247,0.1);color:#9babf5;border-color:rgba(85,107,247,0.2)}
+.sb-item .ico{font-size:.9rem;width:18px;text-align:center;flex-shrink:0}
+.sb-badge{font-size:.62rem;background:rgba(163,113,247,0.15);color:var(--purple);padding:2px 7px;border-radius:5px;margin-left:auto;border:1px solid rgba(163,113,247,0.25)}
+.sb-user{margin:auto 0 0;padding:.85rem}
+.sb-user-box{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:1rem}
+.sb-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;color:#fff;flex-shrink:0;box-shadow:0 0 16px rgba(85,107,247,0.3)}
+.sb-name{font-size:.84rem;font-weight:600;font-family:var(--font-display)}
+.sb-plan{font-size:.72rem;color:var(--blue);margin-top:2px}
+.dash-body{flex:1;padding:2.25rem;overflow-y:auto;min-width:0;background:var(--bg)}
+.dash-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2.25rem}
+.dash-title{font-family:var(--font-display);font-size:1.5rem;font-weight:800;letter-spacing:-.5px}
+.dash-sub{font-size:.8rem;color:var(--muted);margin-top:4px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;margin-bottom:2rem}
+.stat-card{background:linear-gradient(135deg,rgba(13,20,32,0.9),var(--bg2));border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.4rem;transition:border-color .2s,transform .2s}
+.stat-card:hover{border-color:rgba(85,107,247,.3);transform:translateY(-2px)}
+.sc-label{font-size:.68rem;color:var(--muted);margin-bottom:.6rem;text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)}
+.sc-val{font-family:var(--font-display);font-size:1.8rem;font-weight:800;letter-spacing:-.5px}
+.sc-sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+.sc-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:10px}
+.sc-fill{height:100%;border-radius:2px;transition:width .6s}
+.mini-chart{display:flex;align-items:flex-end;gap:2px;height:32px;margin-top:10px}
+.m-bar{flex:1;border-radius:2px 2px 0 0;min-height:3px;transition:height .4s}
+.c-blue{color:var(--blue)}.c-green{color:var(--success)}.c-warn{color:var(--warn)}.c-danger{color:var(--danger)}.c-purple{color:var(--purple)}
+.tbl-card{background:linear-gradient(135deg,rgba(13,20,32,0.9),var(--bg2));border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:1.4rem}
+.tbl-hdr{padding:1rem 1.4rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.tbl-title{font-family:var(--font-display);font-size:.95rem;font-weight:700}
+.vm-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.vm-table th{text-align:left;color:var(--muted);font-weight:500;font-size:.68rem;padding:.8rem 1.2rem;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.8px;white-space:nowrap;font-family:var(--font-display)}
+.vm-table td{padding:.9rem 1.2rem;border-bottom:1px solid rgba(85,107,247,0.06);vertical-align:middle}
 .vm-table tr:last-child td{border-bottom:none}
-.vm-table tr:hover td{background:rgba(255,255,255,.02)}
-.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:.75rem;font-weight:500}
-.s-running{background:rgba(16,185,129,.15);color:var(--success)}
-.s-stopped{background:rgba(148,163,184,.15);color:var(--muted)}
-.s-provisioning{background:rgba(245,158,11,.15);color:var(--warn)}
-.s-failed{background:rgba(239,68,68,.15);color:var(--danger)}
-.s-expired{background:rgba(139,92,246,.15);color:var(--purple)}
-.s-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
-.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
-.table-header{padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
-.table-title{font-size:1rem;font-weight:600}
-/* FORMS */
-.deploy-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;max-width:580px}
-.deploy-panel h3{font-size:1rem;font-weight:600;margin-bottom:1.25rem}
-.form-row{margin-bottom:1rem}
-.form-row label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:.35rem}
-.form-row input,.form-row select,.form-row textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.5rem .75rem;border-radius:6px;font-size:.875rem;outline:none;font-family:inherit}
-.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--cyan)}
+.vm-table tbody tr{transition:background .15s}
+.vm-table tbody tr:hover td{background:rgba(85,107,247,0.03)}
+.sb2{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:.72rem;font-weight:500}
+.sb-run{background:rgba(63,185,80,.1);color:var(--success);border:1px solid rgba(63,185,80,.2)}
+.sb-stop{background:rgba(107,122,159,.08);color:var(--muted);border:1px solid rgba(107,122,159,.15)}
+.sb-prov{background:rgba(210,153,34,.1);color:var(--warn);border:1px solid rgba(210,153,34,.2)}
+.sb-fail{background:rgba(248,81,73,.1);color:var(--danger);border:1px solid rgba(248,81,73,.2)}
+.sb-exp{background:rgba(163,113,247,.1);color:var(--purple);border:1px solid rgba(163,113,247,.2)}
+.deploy-card{background:linear-gradient(135deg,rgba(13,20,32,0.95),rgba(8,13,24,0.98));border:1px solid var(--border);border-radius:16px;padding:2rem;max-width:620px;box-shadow:0 0 60px rgba(85,107,247,0.04)}
+.form-row{margin-bottom:1.1rem}
+.form-row label{display:block;font-size:.77rem;color:var(--muted);margin-bottom:.4rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-display)}
+.form-row input,.form-row select,.form-row textarea{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.6rem .9rem;border-radius:9px;font-size:.85rem;outline:none;font-family:var(--font-main);transition:border-color .2s,box-shadow .2s}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(85,107,247,0.1)}
 .form-row select option{background:var(--bg2)}
-.form-row textarea{resize:vertical;min-height:70px;font-size:.78rem}
-.spec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem}
-.spec-row label{font-size:.8rem;color:var(--muted)}
-.spec-row .sv{font-size:.85rem;font-weight:600;color:var(--cyan);min-width:30px;text-align:right}
-.spec-row input[type=range]{width:130px;accent-color:var(--cyan)}
-.deploy-cost{display:flex;justify-content:space-between;align-items:center;padding:1rem;background:var(--bg3);border-radius:8px;margin-top:1rem}
-.empty-state{text-align:center;padding:3rem;color:var(--muted)}
-.empty-state .es-icon{font-size:2.5rem;margin-bottom:.75rem}
-/* MODALS */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:2rem;width:400px;max-width:92vw;max-height:90vh;overflow-y:auto}
-.modal h2{font-size:1.2rem;font-weight:600;margin-bottom:1.25rem}
-.modal-footer{display:flex;gap:.75rem;margin-top:1.5rem}
-.modal-footer .btn{flex:1;padding:.6rem;font-size:.9rem}
-.divider{display:flex;align-items:center;gap:.75rem;margin:1rem 0;color:var(--muted);font-size:.8rem}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
-.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.25rem}
-.tab{padding:.6rem 1rem;font-size:.875rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
-/* TOAST */
-.toast-container{position:fixed;bottom:1.5rem;right:1.5rem;z-index:400;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end}
-.toast{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.75rem 1.1rem;border-radius:10px;font-size:.85rem;border-left:3px solid var(--cyan);box-shadow:0 4px 24px rgba(0,0,0,.5);max-width:320px;animation:slideIn .2s ease;display:flex;align-items:flex-start;gap:.5rem}
-.toast.error{border-left-color:var(--danger)}
-.toast.success{border-left-color:var(--success)}
-.toast.warn{border-left-color:var(--warn)}
-@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-/* PROGRESS BAR */
-.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px}
-.progress-fill{height:100%;border-radius:2px;transition:width .5s}
-/* BILLING */
-.bill-section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.25rem}
-.bill-section h3{font-size:1rem;font-weight:600;margin-bottom:1rem}
-.bill-row{display:flex;justify-content:space-between;font-size:.875rem;padding:.6rem 0;border-bottom:1px solid rgba(30,45,69,.5)}
+.form-row textarea{resize:vertical;min-height:76px;font-size:.77rem}
+.spec-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.85rem}
+.spec-row label{font-size:.78rem;color:var(--muted)}
+.sv{font-size:.82rem;font-weight:700;color:var(--blue);min-width:32px;text-align:right;font-family:var(--font-display)}
+.spec-row input[type=range]{width:150px}
+.cost-strip{display:flex;justify-content:space-between;align-items:center;padding:1.1rem 1.25rem;background:rgba(85,107,247,0.05);border-radius:10px;margin-top:1.25rem;border:1px solid rgba(85,107,247,0.15)}
+.cost-num{font-family:var(--font-display);font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.overlay.open{display:flex;animation:fadeIn .2s ease}
+.modal{background:var(--bg2);border:1px solid rgba(85,107,247,0.2);border-radius:16px;padding:2.25rem;width:440px;max-width:94vw;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.8),0 0 0 1px rgba(85,107,247,0.1);animation:fadeUp .25s ease}
+.modal h2{font-family:var(--font-display);font-size:1.2rem;font-weight:800;margin-bottom:1.4rem;letter-spacing:-.3px}
+.modal-ft{display:flex;gap:.75rem;margin-top:1.75rem}
+.modal-ft .btn{flex:1;padding:.65rem;font-size:.88rem;justify-content:center}
+.mtabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.4rem}
+.mtab{padding:.6rem 1.1rem;font-size:.84rem;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;font-family:var(--font-display)}
+.mtab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.sub-plan{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:1.1rem;cursor:pointer;transition:all .2s;margin-bottom:.7rem}
+.sub-plan:hover{border-color:rgba(85,107,247,.4);background:var(--bg4);transform:translateX(4px)}
+.sub-plan.rec{border-color:rgba(85,107,247,.35)}
+.sub-gate{background:rgba(85,107,247,.04);border:1px solid rgba(85,107,247,.15);border-radius:14px;padding:2.5rem;text-align:center;margin-bottom:1.75rem}
+.exp-row{display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--muted)}
+.exp-bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
+.exp-fill{height:100%;border-radius:2px}
+.idle-warn{background:rgba(210,153,34,.06);border:1px solid rgba(210,153,34,.2);border-radius:10px;padding:.85rem 1.1rem;font-size:.8rem;color:var(--warn);display:flex;align-items:center;gap:.6rem;margin-bottom:1.4rem}
+.admin-tabs{display:flex;gap:.5rem;margin-bottom:1.75rem;flex-wrap:wrap}
+.atab{padding:.4rem 1rem;border-radius:8px;font-size:.8rem;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .2s;font-family:var(--font-display)}
+.atab.active{background:rgba(163,113,247,.1);color:var(--purple);border-color:rgba(163,113,247,.3)}
+.infra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;margin-bottom:1.75rem}
+.infra-card{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:1.1rem;text-align:center;transition:border-color .2s}
+.infra-card:hover{border-color:rgba(85,107,247,.3)}
+.infra-status{display:inline-flex;align-items:center;gap:5px;font-size:.75rem;margin-top:.3rem}
+.infra-dot{width:6px;height:6px;border-radius:50%;background:var(--success);animation:pulse 2s infinite}
+.infra-link{display:block;color:var(--blue);font-size:.75rem;margin-top:.6rem;cursor:pointer;font-weight:500}
+.toast-wrap{position:fixed;bottom:1.5rem;right:1.5rem;z-index:600;display:flex;flex-direction:column;gap:.5rem;align-items:flex-end}
+.toast{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:.75rem 1.1rem;border-radius:12px;font-size:.82rem;border-left:3px solid var(--blue);box-shadow:0 12px 40px rgba(0,0,0,.7),0 0 0 1px rgba(85,107,247,0.1);max-width:320px;display:flex;align-items:flex-start;gap:.6rem;animation:fadeUp .25s ease}
+.toast.err{border-left-color:var(--danger)}.toast.ok{border-left-color:var(--success)}.toast.warn{border-left-color:var(--warn)}
+.spin{width:14px;height:14px;border:2px solid rgba(85,107,247,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.bill-card{background:linear-gradient(135deg,rgba(13,20,32,0.9),var(--bg2));border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.1rem}
+.bill-card h3{font-family:var(--font-display);font-size:.85rem;font-weight:700;margin-bottom:1.1rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.bill-row{display:flex;justify-content:space-between;font-size:.84rem;padding:.6rem 0;border-bottom:1px solid rgba(85,107,247,0.06)}
 .bill-row:last-child{border-bottom:none}
 .bill-row span:first-child{color:var(--muted)}
-/* SUBSCRIPTION GATE */
-.sub-gate{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;text-align:center}
-.sub-gate h3{font-size:1rem;font-weight:600;margin-bottom:.5rem}
-.sub-gate p{font-size:.85rem;color:var(--muted);margin-bottom:1rem}
-/* IDLE WARNING */
-.idle-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:.75rem 1rem;font-size:.82rem;color:var(--warn);display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
-/* EXPIRY BAR */
-.expiry-row{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--muted)}
-.expiry-row .bar{flex:1;height:3px;background:var(--border);border-radius:2px;overflow:hidden}
-.expiry-row .fill{height:100%;border-radius:2px}
-/* ADMIN */
-.admin-tabs{display:flex;gap:.5rem;margin-bottom:1.5rem;flex-wrap:wrap}
-.admin-tab{padding:.4rem 1rem;border-radius:6px;font-size:.82rem;cursor:pointer;border:1px solid var(--border);color:var(--muted);transition:all .15s}
-.admin-tab.active{background:rgba(139,92,246,.15);color:var(--purple);border-color:var(--purple)}
-/* FOOTER */
-footer{border-top:1px solid var(--border);padding:3rem 2rem;background:var(--bg2)}
-.footer-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:2rem}
-.footer-brand p{font-size:.8rem;color:var(--muted);max-width:220px;line-height:1.6;margin-top:.5rem}
-.footer-links h4{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:.75rem}
-.footer-links ul{list-style:none;display:flex;flex-direction:column;gap:.4rem}
-.footer-links li{font-size:.85rem;color:var(--muted);cursor:pointer}.footer-links li:hover{color:var(--text)}
-.footer-bottom{max-width:1100px;margin:2rem auto 0;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.settings-card{background:linear-gradient(135deg,rgba(13,20,32,0.9),var(--bg2));border:1px solid var(--border);border-radius:14px;padding:1.6rem;margin-bottom:1.1rem;max-width:540px}
+.settings-card h3{font-family:var(--font-display);font-size:.85rem;font-weight:700;margin-bottom:1.4rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;padding-bottom:.85rem;border-bottom:1px solid var(--border)}
+.empty{text-align:center;padding:3.5rem;color:var(--muted)}
+.empty-ico{font-size:2.5rem;margin-bottom:.85rem;opacity:.4}
+footer{border-top:1px solid var(--border);padding:3.5rem 2rem;background:var(--bg2)}
+.foot-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:2rem}
+.foot-logo p{font-size:.78rem;color:var(--muted);max-width:200px;line-height:1.7;margin-top:.6rem}
+.foot-links h4{font-family:var(--font-display);font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:.85rem}
+.foot-links ul{list-style:none;display:flex;flex-direction:column;gap:.45rem}
+.foot-links li{font-size:.82rem;color:var(--muted);cursor:pointer;transition:color .2s}.foot-links li:hover{color:var(--blue)}
+.foot-bottom{max-width:1100px;margin:2rem auto 0;padding-top:1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:.75rem;color:var(--muted)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(85,107,247,0.2);border-radius:2px}
+
+/* LANDING SPECIFIC DECORATIONS */
+.section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(85,107,247,0.3),transparent);margin:0 auto;max-width:800px}
+.floating-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(85,107,247,0.08);border:1px solid rgba(85,107,247,0.2);border-radius:999px;padding:.35rem .9rem;font-size:.75rem;color:#9babf5}
+.stack-item{display:flex;align-items:center;gap:12px;padding:1rem 1.4rem;background:rgba(13,20,32,0.8);border:1px solid rgba(85,107,247,0.12);border-radius:12px;transition:all .25s}
+.stack-item:hover{border-color:rgba(85,107,247,0.35);background:rgba(85,107,247,0.05);transform:translateX(6px)}
+.stack-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 </style>
 </head>
 <body>
 
-<!-- TOAST CONTAINER -->
-<div class="toast-container" id="toastContainer"></div>
+<canvas id="splashCanvas"></canvas>
+<div class="toast-wrap" id="toastWrap"></div>
 
-<!-- NOTIFICATION DROPDOWN -->
-<div class="notif-dropdown" id="notifDropdown">
-  <div class="notif-header">
-    <span>Notifications</span>
-    <span style="font-size:.75rem;color:var(--cyan);cursor:pointer" onclick="clearNotifs()">Clear all</span>
-  </div>
-  <div class="notif-list" id="notifList">
-    <div class="notif-empty">No notifications yet</div>
-  </div>
+<div class="notif-dropdown" id="notifDD">
+  <div class="notif-hdr"><span>Notifications</span><span class="notif-clear" onclick="clearNotifs()">Clear all</span></div>
+  <div class="notif-list" id="notifList"><div class="notif-empty">No notifications yet</div></div>
 </div>
 
-<!-- AUTH MODAL -->
-<div class="modal-overlay" id="authModal">
+<div class="overlay" id="authModal">
   <div class="modal">
-    <div class="tabs">
-      <div class="tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign in</div>
-      <div class="tab" id="tabRegister" onclick="switchAuthTab('register')">Create account</div>
+    <div class="mtabs">
+      <div class="mtab active" id="tab-login" onclick="switchTab('login')">Sign in</div>
+      <div class="mtab" id="tab-reg" onclick="switchTab('reg')">Create account</div>
     </div>
-    <!-- LOGIN -->
-    <div id="authLogin">
-      <div class="form-row"><label>Email</label><input type="email" id="loginEmail" placeholder="you@example.com"/></div>
-      <div class="form-row"><label>Password</label><input type="password" id="loginPass" placeholder="••••••••"/></div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+    <div id="auth-login">
+      <div class="form-row"><label>Email</label><input type="email" id="lEmail" placeholder="you@example.com"/></div>
+      <div class="form-row"><label>Password</label><input type="password" id="lPass" placeholder="••••••••"/></div>
+      <div class="modal-ft">
+        <button class="btn btn-ghost" onclick="closeAuth()">Cancel</button>
         <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
       </div>
-      <p style="font-size:.78rem;color:var(--muted);margin-top:.75rem;text-align:center">Demo admin: admin@voltcore.tn / admin123</p>
     </div>
-    <!-- REGISTER -->
-    <div id="authRegister" style="display:none">
-      <div class="form-row"><label>Full name</label><input type="text" id="regName" placeholder="Ahmed Khalil"/></div>
-      <div class="form-row"><label>Email</label><input type="email" id="regEmail" placeholder="you@example.com"/></div>
-      <div class="form-row"><label>Password</label><input type="password" id="regPass" placeholder="Min 6 characters"/></div>
-      <div class="form-row"><label>Choose a plan</label>
-        <select id="regPlan">
+    <div id="auth-reg" style="display:none">
+      <div class="form-row"><label>Full name</label><input type="text" id="rName" placeholder="Your name"/></div>
+      <div class="form-row"><label>Email</label><input type="email" id="rEmail" placeholder="you@example.com"/></div>
+      <div class="form-row"><label>Password</label><input type="password" id="rPass" placeholder="Min 6 characters"/></div>
+      <div class="form-row"><label>Plan</label>
+        <select id="rPlan">
           <option value="basic">Basic — 29 TND/mo</option>
           <option value="pro">Pro — 89 TND/mo</option>
           <option value="enterprise">Enterprise — 249 TND/mo</option>
         </select>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+      <div class="modal-ft">
+        <button class="btn btn-ghost" onclick="closeAuth()">Cancel</button>
         <button class="btn btn-primary" onclick="doRegister()">Create account</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- SUBSCRIBE MODAL -->
-<div class="modal-overlay" id="subModal">
+<div class="overlay" id="subModal">
   <div class="modal">
-    <h2>Choose a plan to deploy VMs</h2>
-    <p style="color:var(--muted);font-size:.875rem;margin-bottom:1.25rem">You need an active subscription to deploy virtual machines.</p>
-    <div style="display:flex;flex-direction:column;gap:.75rem">
-      <div class="plan" style="padding:1rem;cursor:pointer" onclick="subscribePlan('basic')" id="sp-basic">
-        <div style="display:flex;justify-content:space-between"><b>Basic</b><span style="color:var(--cyan)">29 TND/mo</span></div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">1 vCPU · 2 GB · 40 GB · 1 VM</div>
-      </div>
-      <div class="plan featured" style="padding:1rem;cursor:pointer" onclick="subscribePlan('pro')">
-        <div class="plan-badge">Recommended</div>
-        <div style="display:flex;justify-content:space-between"><b>Pro</b><span style="color:var(--cyan)">89 TND/mo</span></div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">4 vCPU · 8 GB · 160 GB · 5 VMs</div>
-      </div>
-      <div class="plan" style="padding:1rem;cursor:pointer" onclick="subscribePlan('enterprise')">
-        <div style="display:flex;justify-content:space-between"><b>Enterprise</b><span style="color:var(--cyan)">249 TND/mo</span></div>
-        <div style="font-size:.8rem;color:var(--muted);margin-top:.25rem">16 vCPU · 32 GB · 640 GB · Unlimited</div>
-      </div>
-    </div>
-    <button class="btn btn-ghost" style="width:100%;margin-top:1rem" onclick="document.getElementById('subModal').classList.remove('open')">Cancel</button>
+    <h2>Choose a plan</h2>
+    <p style="font-size:.84rem;color:var(--muted);margin-bottom:1.4rem">Select a plan to start deploying VMs.</p>
+    <div class="sub-plan" onclick="activatePlan('basic')"><div style="display:flex;justify-content:space-between"><b style="font-family:var(--font-display)">Basic</b><span style="color:var(--blue)">29 TND/mo</span></div><div style="font-size:.78rem;color:var(--muted);margin-top:4px">1 vCPU · 2 GB · 40 GB · 1 VM</div></div>
+    <div class="sub-plan rec" onclick="activatePlan('pro')"><div style="display:flex;justify-content:space-between"><b style="font-family:var(--font-display)">Pro ⭐</b><span style="color:var(--blue)">89 TND/mo</span></div><div style="font-size:.78rem;color:var(--muted);margin-top:4px">4 vCPU · 8 GB · 160 GB · 5 VMs</div></div>
+    <div class="sub-plan" onclick="activatePlan('enterprise')"><div style="display:flex;justify-content:space-between"><b style="font-family:var(--font-display)">Enterprise</b><span style="color:var(--blue)">249 TND/mo</span></div><div style="font-size:.78rem;color:var(--muted);margin-top:4px">16 vCPU · 32 GB · 640 GB · Unlimited</div></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:.85rem;justify-content:center" onclick="closeSub()">Cancel</button>
   </div>
 </div>
 
-<!-- NAV -->
 <nav>
-  <div class="logo" onclick="goHome()">Volt<span>Core</span></div>
-  <div class="nav-links" id="landingNavLinks">
-    <a onclick="scrollToSection('features')">Features</a>
-    <a onclick="scrollToSection('pricing')">Pricing</a>
-    <a onclick="scrollToSection('builder')">Build VM</a>
+  <div class="logo" onclick="goHome()">
+    <div class="logo-icon">⚡</div>
+    Volt<span class="dim">Core</span>
   </div>
-  <div class="nav-actions">
-    <div class="api-status"><div class="api-dot" id="apiDot"></div><span id="apiLabel" style="font-size:.75rem;color:var(--muted)">Checking...</span></div>
-    <div class="notif-bell" id="notifBell" onclick="toggleNotifDropdown()" style="display:none">
+  <div class="nav-links" id="landingNav">
+    <a onclick="scrollTo2('features')">Features</a>
+    <a onclick="scrollTo2('pricing')">Pricing</a>
+    <a onclick="scrollTo2('builder')">Builder</a>
+    <a onclick="scrollTo2('stack')">Stack</a>
+  </div>
+  <div class="nav-right">
+    <div class="notif-bell" id="notifBell" onclick="toggleNotif()" style="display:none">
       <svg viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
       <div class="notif-badge" id="notifBadge"></div>
     </div>
-    <button class="btn btn-ghost" id="navLoginBtn" onclick="openAuthModal('login')">Sign in</button>
-    <button class="btn btn-primary" id="navRegisterBtn" onclick="openAuthModal('register')">Get started</button>
-    <span id="navUserInfo" style="display:none;font-size:.82rem;color:var(--muted)"></span>
-    <button class="btn btn-ghost btn-sm" id="navLogoutBtn" style="display:none" onclick="logout()">Sign out</button>
+    <button class="btn btn-ghost btn-sm" id="navSignIn" onclick="openAuth('login')">Sign in</button>
+    <button class="btn btn-primary btn-sm" id="navGet" onclick="openAuth('reg')">Get started →</button>
+    <span id="navUser" style="display:none;font-size:.8rem;color:var(--muted)"></span>
+    <button class="btn btn-ghost btn-sm" id="navOut" style="display:none" onclick="logout()">Sign out</button>
   </div>
 </nav>
 
-<!-- ══════════════════ LANDING ══════════════════ -->
-<div class="page active" id="landingPage">
+<!-- LANDING -->
+<div class="page active" id="landingPage" style="padding-top:60px">
   <div class="hero">
-    <div class="hero-grid"></div><div class="hero-glow"></div>
+    <canvas id="heroCanvas"></canvas>
+    <div class="hero-noise"></div>
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-grid"></div>
     <div class="hero-content">
-      <div class="badge"><span class="pulse"></span>99.9% Uptime SLA</div>
-      <h1>Deploy Linux VMs<br/>in <span>Seconds</span></h1>
-      <p>Scalable virtual machines powered by Proxmox + Terraform.<br/>Deploy, scale, and manage with one click.</p>
-      <div class="hero-btns">
-        <button class="btn btn-primary" style="padding:.7rem 1.75rem;font-size:1rem" onclick="openAuthModal('register')">Deploy your first VM</button>
-        <button class="btn btn-outline" style="padding:.7rem 1.75rem;font-size:1rem" onclick="scrollToSection('pricing')">View pricing</button>
+      <div class="hero-pill anim-fade-up"><div class="hero-pill-dot"></div>Proxmox · Terraform · Jenkins · KVM</div>
+      <h1 class="anim-fade-up anim-delay-1">Deploy Linux VMs<br/>in <span class="grad">Seconds</span></h1>
+      <p class="hero-sub anim-fade-up anim-delay-2">Scalable virtual machines fully automated with infrastructure-as-code. Choose a plan or build custom — deploy with one click from Tunis.</p>
+      <div class="hero-btns anim-fade-up anim-delay-3">
+        <button class="btn btn-primary" style="padding:.8rem 2rem;font-size:.95rem;font-family:var(--font-display)" onclick="openAuth('reg')">Deploy your first VM →</button>
+        <button class="btn btn-outline" style="padding:.8rem 2rem;font-size:.95rem;font-family:var(--font-display)" onclick="scrollTo2('pricing')">View pricing</button>
       </div>
-    </div>
-    <div class="hero-stats">
-      <div class="stat"><h3>500+</h3><p>Active machines</p></div>
-      <div class="stat"><h3>12</h3><p>Global regions</p></div>
-      <div class="stat"><h3>5 TB</h3><p>Bandwidth/mo</p></div>
-      <div class="stat"><h3>24/7</h3><p>Support</p></div>
+      <div class="hero-stats anim-fade-up anim-delay-4">
+        <div class="hero-stat"><h3>KVM</h3><p>Virtualisation</p></div>
+        <div class="hero-stat"><h3>IaC</h3><p>Terraform</p></div>
+        <div class="hero-stat"><h3>CI/CD</h3><p>Jenkins</p></div>
+        <div class="hero-stat"><h3>&lt;2m</h3><p>Deploy time</p></div>
+      </div>
     </div>
   </div>
 
+  <div class="section-divider"></div>
+
   <div id="features"><div class="section">
-    <div class="section-label">Why VoltCore</div>
-    <div class="section-title">Everything you need to run at scale</div>
-    <div class="section-sub">Built for developers who demand speed, security, and reliability.</div>
-    <div class="features-grid">
-      <div class="feature-card"><div class="feat-icon">⚡</div><h3>Instant deployment</h3><p>VMs provisioned in ~40s via Proxmox + Terraform pipeline.</p></div>
-      <div class="feature-card"><div class="feat-icon">🔒</div><h3>Isolated & secure</h3><p>Full hardware virtualisation with KVM. SSH key injection via cloud-init.</p></div>
-      <div class="feature-card"><div class="feat-icon">📈</div><h3>Scale on demand</h3><p>Upgrade CPU, RAM or storage at any time without downtime.</p></div>
-      <div class="feature-card"><div class="feat-icon">🌍</div><h3>Multi-region</h3><p>Deploy closer to your users. Cut latency across MENA, EU and beyond.</p></div>
-      <div class="feature-card"><div class="feat-icon">📊</div><h3>Real-time monitoring</h3><p>Live CPU, RAM, disk and bandwidth stats in your dashboard.</p></div>
-      <div class="feature-card"><div class="feat-icon">🔔</div><h3>Smart alerts</h3><p>Idle VM warnings, expiry alerts, and deploy notifications built in.</p></div>
+    <div style="text-align:center;margin-bottom:3.5rem">
+      <div class="sec-pill">Why VoltCore</div>
+      <div class="sec-title">Everything you need<br/>to run at scale</div>
+      <p class="sec-sub" style="margin:0 auto">Built on enterprise-grade open source infrastructure. Zero vendor lock-in.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card card-spotlight" onmousemove="spotlightMove(this,event)" style="--spotlight-color:rgba(85,107,247,0.12)">
+        <div class="feat-ic">⚡</div><h3>Instant provisioning</h3><p>VMs live in under 2 minutes via Terraform + Jenkins CI/CD pipeline. No manual steps required.</p>
+      </div>
+      <div class="feat-card card-spotlight" onmousemove="spotlightMove(this,event)" style="--spotlight-color:rgba(0,212,255,0.1)">
+        <div class="feat-ic">🔒</div><h3>KVM isolation</h3><p>Full hardware virtualisation. Each VM is completely isolated with SSH key injection via cloud-init.</p>
+      </div>
+      <div class="feat-card card-spotlight" onmousemove="spotlightMove(this,event)" style="--spotlight-color:rgba(85,107,247,0.12)">
+        <div class="feat-ic">📈</div><h3>Scale on demand</h3><p>Choose CPU, RAM and disk independently. Redeploy with new specs at any time seamlessly.</p>
+      </div>
+      <div class="feat-card card-spotlight" onmousemove="spotlightMove(this,event)" style="--spotlight-color:rgba(163,113,247,0.12)">
+        <div class="feat-ic">🐧</div><h3>Linux only</h3><p>Ubuntu 22.04 and Debian 12. Cloud-init ready with your SSH key injected at first boot.</p>
+      </div>
+      <div class="feat-card card-spotlight" onmousemove="spotlightMove(this,event)" style="--spotlight-color:rgba(85,107,247,0.12)">
+        <div class="feat-ic">🔧</div><h3>Terraform managed</h3><p>Infrastructure as code. Every VM tracked in remote state on Minio. Reproducible and auditable.</p>
+      </div>
+      <div class="feat-card card-spotlight" onmousemove="spotlightMove(this,event)" style="--spotlight-color:rgba(0,212,255,0.1)">
+        <div class="feat-ic">🔔</div><h3>Smart monitoring</h3><p>Idle VM detection, expiry alerts, live CPU usage and pipeline status — all in one dashboard.</p>
+      </div>
     </div>
   </div></div>
+
+  <div class="section-divider"></div>
 
   <div id="pricing"><div class="section">
-    <div class="section-label">Pricing</div>
-    <div class="section-title">Simple, transparent plans</div>
-    <div class="section-sub">All plans include Linux, SSD storage, and monitoring. Prices in TND/month.</div>
+    <div style="text-align:center;margin-bottom:3.5rem">
+      <div class="sec-pill">Pricing</div>
+      <div class="sec-title">Simple, transparent plans</div>
+      <p class="sec-sub" style="margin:0 auto">All plans include Linux, SSD storage and SSH access. Prices in TND/month.</p>
+    </div>
     <div class="plans-grid">
-      <div class="plan">
+      <div class="plan-card card-spotlight" onmousemove="spotlightMove(this,event)">
         <div class="plan-name">Basic</div>
-        <div class="plan-price">29 <span>TND/mo</span></div>
-        <div class="plan-desc">Perfect for personal projects.</div>
-        <ul class="plan-features">
-          <li><span class="check">✓</span>1 vCPU · 2 GB RAM</li>
-          <li><span class="check">✓</span>40 GB SSD</li>
-          <li><span class="check">✓</span>1 TB bandwidth</li>
-          <li><span class="check">✓</span>1 VM</li>
-          <li><span class="check">✓</span>30 day validity</li>
-        </ul>
-        <button class="btn btn-outline" style="width:100%;padding:.6rem" onclick="openAuthModal('register')">Get started</button>
+        <div class="plan-price">29 <small>TND/mo</small></div>
+        <div class="plan-desc">Perfect for personal projects and learning.</div>
+        <ul class="plan-feats"><li>1 vCPU · 2 GB RAM</li><li>40 GB SSD</li><li>1 TB bandwidth</li><li>1 VM · 30 day validity</li><li>SSH key access</li></ul>
+        <button class="btn btn-outline" style="width:100%;justify-content:center;padding:.7rem;font-family:var(--font-display)" onclick="openAuth('reg')">Get started</button>
       </div>
-      <div class="plan featured">
-        <div class="plan-badge">Most popular</div>
+      <div class="plan-card featured card-spotlight" onmousemove="spotlightMove(this,event)">
+        <div class="plan-tag">Most popular</div>
         <div class="plan-name">Pro</div>
-        <div class="plan-price">89 <span>TND/mo</span></div>
+        <div class="plan-price">89 <small>TND/mo</small></div>
         <div class="plan-desc">For growing teams and production workloads.</div>
-        <ul class="plan-features">
-          <li><span class="check">✓</span>4 vCPU · 8 GB RAM</li>
-          <li><span class="check">✓</span>160 GB SSD</li>
-          <li><span class="check">✓</span>5 TB bandwidth</li>
-          <li><span class="check">✓</span>5 VMs</li>
-          <li><span class="check">✓</span>30 day validity</li>
-          <li><span class="check">✓</span>Daily backups</li>
-        </ul>
-        <button class="btn btn-primary" style="width:100%;padding:.6rem" onclick="openAuthModal('register')">Get started</button>
+        <ul class="plan-feats"><li>4 vCPU · 8 GB RAM</li><li>160 GB SSD</li><li>5 TB bandwidth</li><li>5 VMs · 30 day validity</li><li>Priority deploy</li></ul>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:.7rem;font-family:var(--font-display)" onclick="openAuth('reg')">Get started</button>
       </div>
-      <div class="plan">
+      <div class="plan-card card-spotlight" onmousemove="spotlightMove(this,event)">
         <div class="plan-name">Enterprise</div>
-        <div class="plan-price">249 <span>TND/mo</span></div>
+        <div class="plan-price">249 <small>TND/mo</small></div>
         <div class="plan-desc">Dedicated resources for large deployments.</div>
-        <ul class="plan-features">
-          <li><span class="check">✓</span>16 vCPU · 32 GB RAM</li>
-          <li><span class="check">✓</span>640 GB SSD</li>
-          <li><span class="check">✓</span>Unlimited bandwidth</li>
-          <li><span class="check">✓</span>Unlimited VMs</li>
-          <li><span class="check">✓</span>30 day validity</li>
-          <li><span class="check">✓</span>Priority support</li>
-        </ul>
-        <button class="btn btn-outline" style="width:100%;padding:.6rem" onclick="openAuthModal('register')">Contact sales</button>
+        <ul class="plan-feats"><li>16 vCPU · 32 GB RAM</li><li>640 GB SSD</li><li>Unlimited bandwidth</li><li>Unlimited VMs</li><li>SLA guarantee</li></ul>
+        <button class="btn btn-outline" style="width:100%;justify-content:center;padding:.7rem;font-family:var(--font-display)" onclick="openAuth('reg')">Contact sales</button>
       </div>
     </div>
   </div></div>
 
-  <div id="builder"><div class="section">
-    <div class="section-label">Custom builder</div>
-    <div class="section-title">Build your perfect VM</div>
-    <div class="section-sub">Tune every spec and see your price live.</div>
-    <div class="builder">
-      <div class="builder-row"><span class="builder-label">vCPU cores</span><input type="range" min="1" max="32" value="2" step="1" oninput="calcPrice()" id="bCpu"/><span class="builder-val" id="bCpuVal">2 cores</span></div>
-      <div class="builder-row"><span class="builder-label">RAM</span><input type="range" min="1" max="64" value="4" step="1" oninput="calcPrice()" id="bRam"/><span class="builder-val" id="bRamVal">4 GB</span></div>
-      <div class="builder-row"><span class="builder-label">SSD storage</span><input type="range" min="20" max="2000" value="80" step="20" oninput="calcPrice()" id="bDisk"/><span class="builder-val" id="bDiskVal">80 GB</span></div>
-      <div class="builder-row" style="align-items:flex-start;margin-top:.5rem">
-        <span class="builder-label">OS</span>
-        <div class="os-opts">
-          <div class="os-opt selected" onclick="selOs(this)">Ubuntu 22.04</div>
-          <div class="os-opt" onclick="selOs(this)">Debian 12</div>
+  <div class="section-divider"></div>
+
+  <!-- 3D STACK SECTION -->
+  <div id="stack"><div class="section">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center">
+      <div>
+        <div class="sec-pill">The Stack</div>
+        <div class="sec-title" style="margin-bottom:1rem">Open source,<br/>battle-tested</div>
+        <p style="color:var(--muted);font-size:.95rem;line-height:1.8;margin-bottom:2rem">Every component is open source and enterprise-proven. No black boxes, no proprietary lock-in.</p>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <div class="stack-item"><div class="stack-dot" style="background:#e6a817"></div><div><div style="font-weight:600;font-size:.88rem;font-family:var(--font-display)">Proxmox VE</div><div style="font-size:.78rem;color:var(--muted)">KVM Hypervisor — bare metal performance</div></div></div>
+          <div class="stack-item"><div class="stack-dot" style="background:#7b42bc"></div><div><div style="font-weight:600;font-size:.88rem;font-family:var(--font-display)">Terraform</div><div style="font-size:.78rem;color:var(--muted)">Infrastructure as code — reproducible state</div></div></div>
+          <div class="stack-item"><div class="stack-dot" style="background:#d33833"></div><div><div style="font-weight:600;font-size:.88rem;font-family:var(--font-display)">Jenkins</div><div style="font-size:.78rem;color:var(--muted)">CI/CD pipelines — automated provisioning</div></div></div>
+          <div class="stack-item"><div class="stack-dot" style="background:#c72c48"></div><div><div style="font-weight:600;font-size:.88rem;font-family:var(--font-display)">Minio</div><div style="font-size:.78rem;color:var(--muted)">S3-compatible TF state storage</div></div></div>
         </div>
       </div>
-      <div class="price-box">
-        <div>
-          <div class="price-total" id="bPrice">24 TND<small style="font-size:.9rem;color:var(--muted)">/mo</small></div>
-          <div style="font-size:.8rem;color:var(--muted)">Billed monthly • No setup fee</div>
+      <div>
+        <div class="grid3d-wrap">
+          <div class="grid3d-card card-spotlight" onmousemove="spotlightMove(this,event)" style="grid-column:span 2">
+            <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-family:var(--font-display);margin-bottom:.6rem">Deploy pipeline</div>
+            <div style="font-family:monospace;font-size:.8rem;color:#9babf5;line-height:1.9;background:rgba(85,107,247,0.04);padding:1rem;border-radius:8px;border:1px solid rgba(85,107,247,0.08)">
+              <span style="color:var(--muted)">$</span> terraform init<br/>
+              <span style="color:var(--success)">✓</span> Backend initialized<br/>
+              <span style="color:var(--muted)">$</span> terraform apply<br/>
+              <span style="color:var(--success)">✓</span> VM provisioned in 87s<br/>
+              <span style="color:var(--blue)">→</span> IP: 192.168.0.114
+            </div>
+          </div>
+          <div class="grid3d-card card-spotlight" onmousemove="spotlightMove(this,event)">
+            <div style="font-size:1.6rem;font-family:var(--font-display);font-weight:800;color:var(--blue)">99.9%</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Uptime SLA</div>
+          </div>
+          <div class="grid3d-card card-spotlight" onmousemove="spotlightMove(this,event)">
+            <div style="font-size:1.6rem;font-family:var(--font-display);font-weight:800;color:var(--success)">&lt;2m</div>
+            <div style="font-size:.75rem;color:var(--muted);margin-top:4px">Deploy time</div>
+          </div>
         </div>
-        <button class="btn btn-primary" style="padding:.6rem 1.5rem" onclick="openAuthModal('register')">Deploy now</button>
+      </div>
+    </div>
+  </div></div>
+
+  <div class="section-divider"></div>
+
+  <div id="builder"><div class="section">
+    <div style="text-align:center;margin-bottom:3.5rem">
+      <div class="sec-pill">Custom builder</div>
+      <div class="sec-title">Build your perfect VM</div>
+      <p class="sec-sub" style="margin:0 auto">Tune every spec and see your price live. No surprises.</p>
+    </div>
+    <div class="builder-card">
+      <div class="build-row"><span class="build-label">vCPU cores</span><input type="range" class="build-slider" min="1" max="32" value="2" step="1" oninput="calcPrice()" id="bCpu"/><span class="build-val" id="bCpuV">2 cores</span></div>
+      <div class="build-row"><span class="build-label">RAM</span><input type="range" class="build-slider" min="1" max="64" value="4" step="1" oninput="calcPrice()" id="bRam"/><span class="build-val" id="bRamV">4 GB</span></div>
+      <div class="build-row"><span class="build-label">SSD storage</span><input type="range" class="build-slider" min="20" max="640" value="80" step="20" oninput="calcPrice()" id="bDisk"/><span class="build-val" id="bDiskV">80 GB</span></div>
+      <div class="build-row" style="align-items:flex-start"><span class="build-label">OS</span><div class="os-grid"><div class="os-chip on" onclick="selOs(this)">Ubuntu 22.04</div><div class="os-chip" onclick="selOs(this)">Debian 12</div></div></div>
+      <div class="price-strip">
+        <div><div class="price-num" id="bPrice">24 TND<small style="font-size:.85rem;color:var(--muted);-webkit-text-fill-color:var(--muted)">/mo</small></div><div style="font-size:.75rem;color:var(--muted);margin-top:3px">No setup fee · Cancel anytime</div></div>
+        <button class="btn btn-primary" style="padding:.7rem 1.75rem;font-family:var(--font-display)" onclick="openAuth('reg')">Deploy now →</button>
       </div>
     </div>
   </div></div>
 
   <footer>
-    <div class="footer-inner">
-      <div class="footer-brand"><div class="logo">Volt<span style="color:var(--text)">Core</span></div><p>High-performance Linux virtual machines. Powered by Proxmox + Terraform + Jenkins.</p></div>
-      <div class="footer-links"><h4>Product</h4><ul><li onclick="scrollToSection('features')">Features</li><li onclick="scrollToSection('pricing')">Pricing</li><li>Regions</li><li>Status</li></ul></div>
-      <div class="footer-links"><h4>Developers</h4><ul><li>API Docs</li><li>CLI</li><li>Changelog</li></ul></div>
-      <div class="footer-links"><h4>Company</h4><ul><li>About</li><li>Blog</li><li>Contact</li></ul></div>
+    <div class="foot-inner">
+      <div class="foot-logo">
+        <div class="logo" style="font-size:1.1rem">
+          <div class="logo-icon" style="width:24px;height:24px;font-size:.65rem">⚡</div>
+          Volt<span class="dim">Core</span>
+        </div>
+        <p>High-performance Linux VMs powered by Proxmox, Terraform & Jenkins. Made in Tunis.</p>
+      </div>
+      <div class="foot-links"><h4>Product</h4><ul><li>Features</li><li>Pricing</li><li>Builder</li><li>Status</li></ul></div>
+      <div class="foot-links"><h4>Stack</h4><ul><li>Proxmox VE</li><li>Terraform</li><li>Jenkins</li><li>Minio</li></ul></div>
+      <div class="foot-links"><h4>Company</h4><ul><li>About</li><li>Blog</li><li>Contact</li></ul></div>
     </div>
-    <div class="footer-bottom"><span>© 2026 VoltCore. All rights reserved.</span><span>Privacy · Terms</span></div>
+    <div class="foot-bottom"><span>© 2026 VoltCore. All rights reserved.</span><span>🇹🇳 Tunis, Tunisia</span></div>
   </footer>
 </div>
 
-<!-- ══════════════════ DASHBOARD ══════════════════ -->
+<!-- DASHBOARD -->
 <div class="page" id="dashPage">
-  <div class="dash-layout">
+  <div class="dash-wrap">
     <div class="sidebar">
-      <div class="sidebar-section">
-        <div class="sidebar-label">Main</div>
-        <div class="nav-item active" id="si-overview" onclick="showTab('overview',this)"><span class="ni">📊</span>Overview</div>
-        <div class="nav-item" id="si-machines" onclick="showTab('machines',this)"><span class="ni">🖥️</span>My VMs</div>
-        <div class="nav-item" id="si-deploy" onclick="showTab('deploy',this)"><span class="ni">🚀</span>Deploy VM</div>
-        <div class="nav-item" id="si-billing" onclick="showTab('billing',this)"><span class="ni">💳</span>Billing</div>
-        <div class="nav-item" id="si-settings" onclick="showTab('settings',this)"><span class="ni">⚙️</span>Settings</div>
+      <div class="sb-section">
+        <span class="sb-label">Main</span>
+        <div class="sb-item active" id="si-ov" onclick="showTab('ov',this)"><span class="ico">📊</span>Overview</div>
+        <div class="sb-item" id="si-vms" onclick="showTab('vms',this)"><span class="ico">🖥️</span>My VMs</div>
+        <div class="sb-item" id="si-dep" onclick="showTab('dep',this)"><span class="ico">🚀</span>Deploy VM</div>
+        <div class="sb-item" id="si-bill" onclick="showTab('bill',this)"><span class="ico">💳</span>Billing</div>
+        <div class="sb-item" id="si-set" onclick="showTab('set',this)"><span class="ico">⚙️</span>Settings</div>
       </div>
-      <div class="sidebar-section" id="adminSection" style="display:none">
-        <div class="sidebar-label">Admin</div>
-        <div class="nav-item" id="si-admin" onclick="showTab('admin',this)"><span class="ni">👑</span>Admin Panel<span class="admin-badge">ADMIN</span></div>
+      <div class="sb-section" id="adminSec" style="display:none">
+        <span class="sb-label">Admin</span>
+        <div class="sb-item" id="si-adm" onclick="showTab('adm',this)"><span class="ico">👑</span>Admin Panel<span class="sb-badge">ADMIN</span></div>
       </div>
-      <div class="sidebar-section">
-        <div class="nav-item" onclick="logout()"><span class="ni">🚪</span>Sign out</div>
+      <div class="sb-section">
+        <div class="sb-item" onclick="logout()"><span class="ico">🚪</span>Sign out</div>
+      </div>
+      <div class="sb-user">
+        <div class="sb-user-box">
+          <div style="display:flex;align-items:center;gap:.7rem">
+            <div class="sb-avatar" id="sbAvatar">S</div>
+            <div><div class="sb-name" id="sbName">—</div><div class="sb-plan" id="sbPlan">—</div></div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <div class="dash-content">
-
-      <!-- OVERVIEW -->
-      <div id="tab-overview">
-        <div class="dash-header">
-          <div>
-            <div class="dash-title">Overview</div>
-            <div style="font-size:.82rem;color:var(--muted);margin-top:2px" id="ov-welcome"></div>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="showTab('deploy',document.getElementById('si-deploy'))">+ Deploy VM</button>
+    <div class="dash-body">
+      <div id="tab-ov">
+        <div class="dash-hdr">
+          <div><div class="dash-title" id="ov-title">Overview</div><div class="dash-sub" id="ov-sub"></div></div>
+          <button class="btn btn-primary btn-sm" onclick="showTab('dep',document.getElementById('si-dep'))">+ Deploy VM</button>
         </div>
-        <div id="idleWarning" class="idle-warn" style="display:none">⚠️ You have a VM that has been running for over 5 minutes with no activity. Consider stopping it to save resources.</div>
-        <div class="stats-grid">
-          <div class="stat-card"><div class="sc-label">Active VMs</div><div class="sc-val c-cyan" id="ov-active">0</div><div class="sc-sub">running now</div><div class="mini-chart" id="chart-vms"></div></div>
-          <div class="stat-card"><div class="sc-label">CPU Usage</div><div class="sc-val c-green" id="ov-cpu">0%</div><div class="sc-sub">avg across VMs</div><div class="mini-chart" id="chart-cpu"></div></div>
-          <div class="stat-card"><div class="sc-label">Bandwidth</div><div class="sc-val c-warn" id="ov-bw">0 GB</div><div class="sc-sub" id="ov-bw-sub">of plan limit</div><div class="progress-bar"><div class="progress-fill" id="bw-fill" style="background:var(--warn);width:0%"></div></div></div>
-          <div class="stat-card"><div class="sc-label">This Month</div><div class="sc-val" id="ov-bill">0 TND</div><div class="sc-sub" id="ov-plan-label">No plan</div></div>
+        <div id="idleWarn" class="idle-warn" style="display:none">⚠️ A VM has been running for 5+ minutes with no recent activity.</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="sc-label">Active VMs</div><div class="sc-val c-blue" id="ov-active">0</div><div class="sc-sub">running now</div><div class="mini-chart" id="chart-vms"></div></div>
+          <div class="stat-card"><div class="sc-label">Avg CPU</div><div class="sc-val c-green" id="ov-cpu">0%</div><div class="sc-sub">across all VMs</div><div class="mini-chart" id="chart-cpu"></div></div>
+          <div class="stat-card"><div class="sc-label">Bandwidth</div><div class="sc-val c-warn" id="ov-bw">0 GB</div><div class="sc-sub" id="ov-bw-sub">of plan limit</div><div class="sc-bar"><div class="sc-fill" id="bw-fill" style="background:var(--warn)"></div></div></div>
+          <div class="stat-card"><div class="sc-label">Monthly cost</div><div class="sc-val c-blue" id="ov-cost">0 TND</div><div class="sc-sub" id="ov-plan-lbl">No active plan</div></div>
         </div>
-        <div class="table-card">
-          <div class="table-header"><span class="table-title">Your machines</span><button class="btn btn-ghost btn-sm" onclick="showTab('machines',document.getElementById('si-machines'))">View all</button></div>
-          <div id="ov-vm-list"></div>
+        <div class="tbl-card">
+          <div class="tbl-hdr"><span class="tbl-title">Recent VMs</span><button class="btn btn-ghost btn-sm" onclick="showTab('vms',document.getElementById('si-vms'))">View all</button></div>
+          <div id="ov-vm-tbl"></div>
         </div>
       </div>
-
-      <!-- MY VMs -->
-      <div id="tab-machines" style="display:none">
-        <div class="dash-header"><div class="dash-title">My VMs</div><button class="btn btn-primary btn-sm" onclick="showTab('deploy',document.getElementById('si-deploy'))">+ Deploy VM</button></div>
-        <div class="table-card"><div id="vm-list-full"></div></div>
+      <div id="tab-vms" style="display:none">
+        <div class="dash-hdr"><div class="dash-title">My VMs</div><button class="btn btn-primary btn-sm" onclick="showTab('dep',document.getElementById('si-dep'))">+ Deploy VM</button></div>
+        <div class="tbl-card"><div id="full-vm-tbl"></div></div>
       </div>
-
-      <!-- DEPLOY -->
-      <div id="tab-deploy" style="display:none">
-        <div class="dash-header"><div class="dash-title">Deploy new VM</div></div>
-        <div id="subGateDiv" class="sub-gate" style="display:none">
-          <h3>🔒 Subscription required</h3>
-          <p>You need an active plan to deploy VMs.</p>
+      <div id="tab-dep" style="display:none">
+        <div class="dash-hdr"><div class="dash-title">Deploy new VM</div></div>
+        <div id="subGate" class="sub-gate" style="display:none">
+          <div style="font-size:1.5rem;margin-bottom:.5rem">🔒</div>
+          <div style="font-family:var(--font-display);font-weight:700;margin-bottom:.4rem">Subscription required</div>
+          <div style="font-size:.84rem;color:var(--muted);margin-bottom:1rem">You need an active plan to deploy virtual machines.</div>
           <button class="btn btn-primary btn-sm" onclick="document.getElementById('subModal').classList.add('open')">Choose a plan</button>
         </div>
-        <div class="deploy-panel" id="deployFormDiv">
-          <div class="form-row"><label>VM name (lowercase, hyphens only)</label><input type="text" id="vmName" placeholder="e.g. web-prod-02"/></div>
-          <div class="form-row"><label>Your email</label><input type="email" id="vmEmail"/></div>
-          <div class="form-row"><label>SSH public key</label><textarea id="vmSshKey" placeholder="ssh-rsa AAAA..."></textarea></div>
-          <div class="form-row"><label>Operating system</label>
-            <select id="vmOs"><option value="ubuntu-22.04">Ubuntu 22.04 LTS</option><option value="debian-12">Debian 12</option></select>
-          </div>
+        <div class="deploy-card" id="depForm">
+          <div class="form-row"><label>VM name (lowercase, hyphens only)</label><input type="text" id="vmN" placeholder="e.g. web-prod-02"/></div>
+          <div class="form-row"><label>Email</label><input type="email" id="vmE"/></div>
+          <div class="form-row"><label>SSH public key</label><textarea id="vmK" placeholder="ssh-rsa AAAA..."></textarea></div>
+          <div class="form-row"><label>Operating system</label><select id="vmOs"><option value="ubuntu-22.04">Ubuntu 22.04 LTS</option><option value="debian-12">Debian 12</option></select></div>
           <div class="form-row"><label>Plan</label>
-            <select id="vmPlan" onchange="planChanged()">
+            <select id="vmPlan" onchange="planChange()">
               <option value="basic">Basic — 1 vCPU, 2 GB, 40 GB</option>
               <option value="pro">Pro — 4 vCPU, 8 GB, 160 GB</option>
               <option value="enterprise">Enterprise — 16 vCPU, 32 GB, 640 GB</option>
               <option value="custom">Custom</option>
             </select>
           </div>
-          <div id="customSpecs" style="display:none;margin-top:.5rem">
+          <div id="customSp" style="display:none;margin:.85rem 0;padding:.85rem;background:var(--bg3);border-radius:10px;border:1px solid var(--border)">
             <div class="spec-row"><label>vCPU</label><input type="range" min="1" max="32" value="2" step="1" oninput="dCalc()" id="dCpu"/><span class="sv" id="dCpuV">2</span></div>
             <div class="spec-row"><label>RAM (GB)</label><input type="range" min="1" max="64" value="4" step="1" oninput="dCalc()" id="dRam"/><span class="sv" id="dRamV">4</span></div>
-            <div class="spec-row"><label>SSD (GB)</label><input type="range" min="20" max="2000" value="80" step="20" oninput="dCalc()" id="dDisk"/><span class="sv" id="dDiskV">80</span></div>
+            <div class="spec-row"><label>SSD (GB)</label><input type="range" min="20" max="640" value="80" step="20" oninput="dCalc()" id="dDisk"/><span class="sv" id="dDiskV">80</span></div>
           </div>
-          <div class="form-row"><label>VM validity (days)</label>
-            <select id="vmExpiry"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option></select>
-          </div>
-          <div class="deploy-cost">
-            <div><div style="font-size:.8rem;color:var(--muted)">Estimated cost</div><div style="font-size:1.4rem;font-weight:700;color:var(--cyan)" id="dCost">29 TND/mo</div></div>
-            <button class="btn btn-primary" id="deployBtn" onclick="deployVM()">Deploy VM</button>
+          <div class="form-row"><label>Validity</label><select id="vmExp"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option><option value="60">60 days</option></select></div>
+          <div class="cost-strip">
+            <div><div style="font-size:.72rem;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-display)">Estimated cost</div><div class="cost-num" id="dCost">29 TND/mo</div></div>
+            <button class="btn btn-primary" id="depBtn" onclick="deployVM()">Deploy VM →</button>
           </div>
         </div>
       </div>
-
-      <!-- BILLING -->
-      <div id="tab-billing" style="display:none">
-        <div class="dash-header"><div class="dash-title">Billing</div><button class="btn btn-outline btn-sm" onclick="document.getElementById('subModal').classList.add('open')">Upgrade plan</button></div>
-        <div class="bill-section">
-          <h3>Current subscription</h3>
-          <div class="bill-row"><span>Plan</span><span id="bill-plan">—</span></div>
-          <div class="bill-row"><span>Price</span><span id="bill-price">—</span></div>
+      <div id="tab-bill" style="display:none">
+        <div class="dash-hdr"><div class="dash-title">Billing</div><button class="btn btn-outline btn-sm" onclick="document.getElementById('subModal').classList.add('open')">Upgrade plan</button></div>
+        <div class="bill-card"><h3>Subscription</h3>
+          <div class="bill-row"><span>Plan</span><span id="b-plan" style="color:var(--blue)">—</span></div>
+          <div class="bill-row"><span>Price</span><span id="b-price">—</span></div>
           <div class="bill-row"><span>Status</span><span style="color:var(--success)">✓ Active</span></div>
-          <div class="bill-row"><span>Expires</span><span id="bill-expires">—</span></div>
-          <div class="bill-row"><span>VM limit</span><span id="bill-vmlimit">—</span></div>
+          <div class="bill-row"><span>VM limit</span><span id="b-limit">—</span></div>
         </div>
-        <div class="bill-section">
-          <h3>This month</h3>
-          <div id="bill-items"></div>
-          <div class="bill-row" style="font-weight:600;margin-top:.25rem"><span>Total</span><span id="bill-total" style="color:var(--cyan)">0 TND</span></div>
-        </div>
-        <div class="bill-section">
-          <h3>Invoice history</h3>
-          <div id="bill-history"></div>
-        </div>
+        <div class="bill-card"><h3>This month</h3><div id="b-items"></div><div class="bill-row" style="font-weight:600"><span>Total</span><span id="b-total" style="color:var(--blue)">0 TND</span></div></div>
       </div>
-
-      <!-- SETTINGS -->
-      <div id="tab-settings" style="display:none">
-        <div class="dash-header"><div class="dash-title">Settings</div></div>
-        <div class="deploy-panel">
-          <h3>Profile</h3>
-          <div class="form-row" style="margin-top:1rem"><label>Full name</label><input type="text" id="setName"/></div>
+      <div id="tab-set" style="display:none">
+        <div class="dash-hdr"><div class="dash-title">Settings</div></div>
+        <div class="settings-card"><h3>Profile</h3>
+          <div class="form-row"><label>Full name</label><input type="text" id="setName"/></div>
           <div class="form-row"><label>Email</label><input type="email" id="setEmail" disabled/></div>
-          <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save changes</button>
-          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--border)">
-            <h3>API Configuration</h3>
-            <div class="form-row" style="margin-top:1rem"><label>Backend API URL</label><input type="text" id="apiUrlInput" value="http://192.168.0.143:3000"/></div>
-            <button class="btn btn-primary btn-sm" onclick="saveApiUrl()">Save & reconnect</button>
+          <button class="btn btn-primary btn-sm" onclick="saveProfile()">Save profile</button>
+        </div>
+        <div class="settings-card"><h3>Change password</h3>
+          <div class="form-row"><label>Current password</label><input type="password" id="setCurPass" placeholder="••••••••"/></div>
+          <div class="form-row"><label>New password</label><input type="password" id="setNewPass" placeholder="Min 6 characters"/></div>
+          <div class="form-row"><label>Confirm new password</label><input type="password" id="setConfPass" placeholder="Repeat new password"/></div>
+          <button class="btn btn-primary btn-sm" onclick="changePass()">Change password</button>
+        </div>
+        <div class="settings-card"><h3>Danger zone</h3>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div><div style="font-size:.84rem;font-weight:500">Delete account</div><div style="font-size:.78rem;color:var(--muted);margin-top:2px">Permanently remove your account and all VMs.</div></div>
+            <button class="btn btn-danger btn-sm" onclick="toast('Account deletion disabled in demo mode.','warn')">Delete account</button>
           </div>
         </div>
       </div>
-
-      <!-- ADMIN PANEL -->
-      <div id="tab-admin" style="display:none">
-        <div class="dash-header"><div class="dash-title">Admin Panel</div><span style="font-size:.8rem;color:var(--purple)">👑 Administrator</span></div>
+      <div id="tab-adm" style="display:none">
+        <div class="dash-hdr"><div><div class="dash-title">Admin Panel</div><div class="dash-sub">Full infrastructure control</div></div><span style="font-size:.78rem;color:var(--purple);background:rgba(163,113,247,.1);border:1px solid rgba(163,113,247,.2);padding:.3rem .85rem;border-radius:999px;font-family:var(--font-display)">👑 Administrator</span></div>
+        <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1.75rem">
+          <div class="stat-card"><div class="sc-label">Total users</div><div class="sc-val c-purple" id="adm-users">0</div><div class="sc-sub">registered</div></div>
+          <div class="stat-card"><div class="sc-label">All VMs</div><div class="sc-val c-blue" id="adm-vms">0</div><div class="sc-sub">system-wide</div></div>
+          <div class="stat-card"><div class="sc-label">Revenue</div><div class="sc-val c-green" id="adm-rev">0 TND</div><div class="sc-sub">active plans</div></div>
+          <div class="stat-card"><div class="sc-label">Running VMs</div><div class="sc-val c-warn" id="adm-run">0</div><div class="sc-sub">consuming resources</div></div>
+        </div>
         <div class="admin-tabs">
-          <div class="admin-tab active" onclick="showAdminTab('all-vms',this)">All VMs</div>
-          <div class="admin-tab" onclick="showAdminTab('all-users',this)">Users</div>
-          <div class="admin-tab" onclick="showAdminTab('all-billing',this)">Billing</div>
+          <div class="atab active" onclick="showATab('vms',this)">All VMs</div>
+          <div class="atab" onclick="showATab('users',this)">Users</div>
+          <div class="atab" onclick="showATab('infra',this)">Infrastructure</div>
+          <div class="atab" onclick="showATab('billing',this)">Revenue</div>
         </div>
-        <!-- ALL VMs -->
-        <div id="atab-all-vms">
-          <div class="table-card"><div class="table-header"><span class="table-title">All Virtual Machines</span><span id="admin-vm-count" style="font-size:.8rem;color:var(--muted)"></span></div><div id="admin-vm-list"></div></div>
-        </div>
-        <!-- ALL USERS -->
-        <div id="atab-all-users" style="display:none">
-          <div class="table-card"><div class="table-header"><span class="table-title">Registered Users</span></div>
-          <table class="vm-table"><thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>VMs</th><th>Joined</th><th>Actions</th></tr></thead>
-          <tbody id="admin-user-list"></tbody></table></div>
-        </div>
-        <!-- BILLING -->
-        <div id="atab-all-billing" style="display:none">
-          <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="stat-card"><div class="sc-label">Total Revenue</div><div class="sc-val c-cyan" id="adm-rev">0 TND</div><div class="sc-sub">all plans</div></div>
-            <div class="stat-card"><div class="sc-label">Active Subscriptions</div><div class="sc-val c-green" id="adm-subs">0</div><div class="sc-sub">paying users</div></div>
-            <div class="stat-card"><div class="sc-label">Total VMs</div><div class="sc-val" id="adm-vms">0</div><div class="sc-sub">across all users</div></div>
+        <div id="atab-vms"><div class="tbl-card"><div class="tbl-hdr"><span class="tbl-title">All Virtual Machines</span><span id="adm-vm-count" style="font-size:.78rem;color:var(--muted)"></span></div><div id="adm-vm-tbl"></div></div></div>
+        <div id="atab-users" style="display:none"><div class="tbl-card"><div class="tbl-hdr"><span class="tbl-title">Registered Users</span></div><table class="vm-table"><thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>VMs</th><th>Joined</th><th>Role</th></tr></thead><tbody id="adm-user-tbl"></tbody></table></div></div>
+        <div id="atab-infra" style="display:none">
+          <div class="infra-grid">
+            <div class="infra-card"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)">Jenkins</div><div style="font-size:1rem;font-weight:700;margin-top:.3rem;font-family:var(--font-display)">CI/CD Pipeline</div><div class="infra-status"><div class="infra-dot"></div><span style="font-size:.75rem;color:var(--success)">Online</span></div><span class="infra-link" onclick="window.open('http://192.168.0.143:8080')">Open Jenkins ↗</span></div>
+            <div class="infra-card"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)">Minio</div><div style="font-size:1rem;font-weight:700;margin-top:.3rem;font-family:var(--font-display)">TF State Store</div><div class="infra-status"><div class="infra-dot"></div><span style="font-size:.75rem;color:var(--success)">Online</span></div><span class="infra-link" onclick="window.open('http://192.168.0.143:9001')">Open Minio ↗</span></div>
+            <div class="infra-card"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)">Proxmox VE</div><div style="font-size:1rem;font-weight:700;margin-top:.3rem;font-family:var(--font-display)">Hypervisor</div><div class="infra-status"><div class="infra-dot"></div><span style="font-size:.75rem;color:var(--success)">Online</span></div><span class="infra-link" onclick="window.open('https://192.168.0.143:8006')">Open Proxmox ↗</span></div>
+            <div class="infra-card"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)">Backend API</div><div style="font-size:1rem;font-weight:700;margin-top:.3rem;font-family:var(--font-display)">Node.js Express</div><div class="infra-status"><div class="infra-dot" id="api-dot-infra"></div><span style="font-size:.75rem;color:var(--success)" id="api-lbl-infra">Checking...</span></div><span class="infra-link" onclick="checkAndShowApi()">Check health ↗</span></div>
+            <div class="infra-card"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)">Terraform</div><div style="font-size:1rem;font-weight:700;margin-top:.3rem;font-family:var(--font-display)">v1.8.5</div><div class="infra-status"><div class="infra-dot"></div><span style="font-size:.75rem;color:var(--success)">Installed</span></div><span class="infra-link" onclick="toast('Terraform installed at /usr/local/bin/terraform','ok')">Show info</span></div>
+            <div class="infra-card"><div style="font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:var(--font-display)">Docker</div><div style="font-size:1rem;font-weight:700;margin-top:.3rem;font-family:var(--font-display)">Container runtime</div><div class="infra-status"><div class="infra-dot"></div><span style="font-size:.75rem;color:var(--success)">Running</span></div><span class="infra-link" onclick="toast('3 containers running: jenkins, minio, voltcore-api','ok')">Show containers</span></div>
           </div>
-          <div class="bill-section" style="margin-top:1rem"><h3>Revenue breakdown</h3><div id="adm-breakdown"></div></div>
+        </div>
+        <div id="atab-billing" style="display:none">
+          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.75rem">
+            <div class="stat-card"><div class="sc-label">Monthly revenue</div><div class="sc-val c-blue" id="adm-rev2">0 TND</div><div class="sc-sub">from active plans</div></div>
+            <div class="stat-card"><div class="sc-label">Active subscriptions</div><div class="sc-val c-green" id="adm-subs">0</div></div>
+            <div class="stat-card"><div class="sc-label">Avg plan value</div><div class="sc-val c-purple" id="adm-avg">0 TND</div></div>
+          </div>
+          <div class="bill-card"><h3>Revenue by plan</h3><div id="adm-rev-breakdown"></div></div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
 <script>
-// ══════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════
-const API_BASE_DEFAULT = 'http://192.168.0.143:3000';
-let apiBase = localStorage.getItem('voltcore_api') || API_BASE_DEFAULT;
-
-// Users DB (in-memory, seeded)
-let users = JSON.parse(localStorage.getItem('vc_users') || 'null') || [
-  {id:'admin',name:'Admin',email:'admin@voltcore.tn',pass:'admin123',role:'admin',plan:'enterprise',planExpiry:daysFromNow(365),vms:[],joined:new Date().toISOString(),bandwidth:0}
-];
-let currentUser = null;
-let allVms = JSON.parse(localStorage.getItem('vc_allvms') || '[]');
-let notifications = JSON.parse(localStorage.getItem('vc_notifs') || '[]');
-let pollTimers = {};
-let cpuHistory = Array(8).fill(0);
-let vmHistory  = Array(8).fill(0);
-let idleTimers = {};
-
-const PLAN_LIMITS = {basic:{price:29,vms:1,bw:1024,label:'Basic'},pro:{price:89,vms:5,bw:5120,label:'Pro'},enterprise:{price:249,vms:999,bw:999999,label:'Enterprise'}};
-
-function daysFromNow(d){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString();}
-function saveState(){
-  localStorage.setItem('vc_users',JSON.stringify(users));
-  localStorage.setItem('vc_allvms',JSON.stringify(allVms));
-  localStorage.setItem('vc_notifs',JSON.stringify(notifications));
+// ══ SPOTLIGHT CARD ══════════════════════════
+function spotlightMove(el, e){
+  const r=el.getBoundingClientRect();
+  el.style.setProperty('--mouse-x',(e.clientX-r.left)+'px');
+  el.style.setProperty('--mouse-y',(e.clientY-r.top)+'px');
 }
 
-// ══════════════════════════════════════════════
-// AUTH
-// ══════════════════════════════════════════════
-function openAuthModal(tab){
-  document.getElementById('authModal').classList.add('open');
-  switchAuthTab(tab);
-}
-function closeAuthModal(){document.getElementById('authModal').classList.remove('open')}
-function switchAuthTab(t){
-  document.getElementById('authLogin').style.display    = t==='login'    ? 'block':'none';
-  document.getElementById('authRegister').style.display = t==='register' ? 'block':'none';
-  document.getElementById('tabLogin').classList.toggle('active',t==='login');
-  document.getElementById('tabRegister').classList.toggle('active',t==='register');
-}
+// ══ WEBGL HERO RAYS ═════════════════════════
+(function initRays(){
+  const canvas=document.getElementById('heroCanvas');
+  const gl=canvas.getContext('webgl')||canvas.getContext('experimental-webgl');
+  if(!gl)return;
+  const vert=`attribute vec2 a_pos;void main(){gl_Position=vec4(a_pos,0,1);}`;
+  const frag=`precision highp float;uniform float u_time;uniform vec2 u_res;uniform vec2 u_mouse;
+  float rayStr(vec2 src,vec2 dir,vec2 coord,float sA,float sB,float spd){vec2 d=coord-src;vec2 dn=normalize(d);float ca=dot(dn,dir);float spread=pow(max(ca,0.0),6.0);float dist=length(d);float maxD=u_res.x*2.5;float lf=clamp((maxD-dist)/maxD,0.0,1.0);float b=clamp((0.45+0.15*sin(ca*sA+u_time*spd))+(0.30+0.20*cos(-ca*sB+u_time*spd)),0.0,1.0);return b*lf*spread;}
+  void main(){vec2 coord=vec2(gl_FragCoord.x,u_res.y-gl_FragCoord.y);vec2 src=vec2(u_mouse.x*u_res.x,u_mouse.y*u_res.y);vec2 dir=normalize(vec2(0.0,1.0));float r1=rayStr(src,dir,coord,36.22,21.11,1.5);float r2=rayStr(src,dir,coord,22.40,18.02,1.1);float ray=r1*0.5+r2*0.4;float brightness=1.0-(coord.y/u_res.y);float r=ray*(0.02+brightness*0.18);float g=ray*(0.03+brightness*0.18);float b=ray*(0.35+brightness*0.55);gl_FragColor=vec4(r,g,b,ray*0.45);}`;
+  function compile(t,s){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh;}
+  const prog=gl.createProgram();gl.attachShader(prog,compile(gl.VERTEX_SHADER,vert));gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,frag));gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(prog,'a_pos');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  const uTime=gl.getUniformLocation(prog,'u_time');const uRes=gl.getUniformLocation(prog,'u_res');const uMouse=gl.getUniformLocation(prog,'u_mouse');
+  gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+  let mx=0.5,my=0.35,smx=0.5,smy=0.35;
+  window.addEventListener('mousemove',e=>{const hero=document.querySelector('.hero');if(!hero)return;const r=hero.getBoundingClientRect();mx=(e.clientX-r.left)/r.width;my=(e.clientY-r.top)/r.height;});
+  function resize(){const hero=document.querySelector('.hero');if(!hero)return;const w=hero.clientWidth,h=hero.clientHeight;canvas.width=w;canvas.height=h;gl.viewport(0,0,w,h);}
+  window.addEventListener('resize',resize);resize();
+  let t0=null,rafId=null;
+  function frame(ts){if(!t0)t0=ts;const t=(ts-t0)*0.001;smx+=(mx-smx)*0.06;smy+=(my-smy)*0.06;gl.clear(gl.COLOR_BUFFER_BIT);gl.uniform1f(uTime,t);gl.uniform2f(uRes,canvas.width,canvas.height);gl.uniform2f(uMouse,smx,smy);gl.drawArrays(gl.TRIANGLES,0,3);if(document.getElementById('landingPage').classList.contains('active')){rafId=requestAnimationFrame(frame);}}
+  requestAnimationFrame(frame);
+  window._restartRays=()=>{t0=null;if(rafId)cancelAnimationFrame(rafId);requestAnimationFrame(frame);};
+})();
 
-function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim();
-  const pass=document.getElementById('loginPass').value;
-  const u=users.find(x=>x.email===email&&x.pass===pass);
-  if(!u) return toast('Invalid email or password','error');
-  currentUser=u;
-  closeAuthModal();
-  enterDashboard();
-}
+// ══ SPLASH CURSOR (fluid simulation) ══════
+(function initSplash(){
+  const canvas=document.getElementById('splashCanvas');
+  const params={alpha:true,depth:false,stencil:false,antialias:false,preserveDrawingBuffer:false};
+  let gl=canvas.getContext('webgl2',params);
+  const isWebGL2=!!gl;
+  if(!isWebGL2)gl=canvas.getContext('webgl',params)||canvas.getContext('experimental-webgl',params);
+  if(!gl)return;
 
-function doRegister(){
-  const name=document.getElementById('regName').value.trim();
-  const email=document.getElementById('regEmail').value.trim();
-  const pass=document.getElementById('regPass').value;
-  const plan=document.getElementById('regPlan').value;
-  if(!name||!email||!pass) return toast('All fields are required','error');
-  if(pass.length<6) return toast('Password must be at least 6 characters','error');
-  if(users.find(x=>x.email===email)) return toast('Email already registered','error');
-  const u={
-    id:'usr_'+Date.now(),name,email,pass,role:'user',
-    plan,planExpiry:daysFromNow(30),
-    vms:[],joined:new Date().toISOString(),bandwidth:0
-  };
-  users.push(u);
-  currentUser=u;
-  saveState();
-  closeAuthModal();
-  toast('Welcome to VoltCore, '+name+'! 🎉','success');
-  enterDashboard();
-}
+  let halfFloat,supportLinear;
+  if(isWebGL2){gl.getExtension('EXT_color_buffer_float');supportLinear=gl.getExtension('OES_texture_float_linear');}
+  else{halfFloat=gl.getExtension('OES_texture_half_float');supportLinear=gl.getExtension('OES_texture_half_float_linear');}
+  gl.clearColor(0,0,0,1);
+  const halfFloatTexType=isWebGL2?gl.HALF_FLOAT:(halfFloat&&halfFloat.HALF_FLOAT_OES);
 
-function enterDashboard(){
-  document.getElementById('landingPage').classList.remove('active');
-  document.getElementById('dashPage').classList.add('active');
-  document.getElementById('navLoginBtn').style.display='none';
-  document.getElementById('navRegisterBtn').style.display='none';
-  document.getElementById('navUserInfo').style.display='inline';
-  document.getElementById('navUserInfo').textContent=currentUser.name;
-  document.getElementById('navLogoutBtn').style.display='inline';
-  document.getElementById('notifBell').style.display='flex';
-  document.getElementById('landingNavLinks').style.display='none';
-  if(currentUser.role==='admin') document.getElementById('adminSection').style.display='block';
-  // Pre-fill deploy form
-  document.getElementById('vmEmail').value=currentUser.email;
-  document.getElementById('setName').value=currentUser.name;
-  document.getElementById('setEmail').value=currentUser.email;
-  document.getElementById('apiUrlInput').value=apiBase;
-  showTab('overview',document.getElementById('si-overview'));
-  renderAll();
-  checkApi();
-  startStatsTick();
-  checkExpiry();
-}
-
-function logout(){
-  currentUser=null;
-  Object.values(pollTimers).forEach(clearInterval);
-  pollTimers={};
-  document.getElementById('dashPage').classList.remove('active');
-  document.getElementById('landingPage').classList.add('active');
-  document.getElementById('navLoginBtn').style.display='inline';
-  document.getElementById('navRegisterBtn').style.display='inline';
-  document.getElementById('navUserInfo').style.display='none';
-  document.getElementById('navLogoutBtn').style.display='none';
-  document.getElementById('notifBell').style.display='none';
-  document.getElementById('landingNavLinks').style.display='flex';
-  document.getElementById('adminSection').style.display='none';
-}
-
-// ══════════════════════════════════════════════
-// SUBSCRIPTION
-// ══════════════════════════════════════════════
-function subscribePlan(plan){
-  currentUser.plan=plan;
-  currentUser.planExpiry=daysFromNow(30);
-  saveState();
-  document.getElementById('subModal').classList.remove('open');
-  toast('Subscribed to '+PLAN_LIMITS[plan].label+' plan! 🎉','success');
-  addNotif('🎉','Subscription activated','Your '+PLAN_LIMITS[plan].label+' plan is now active.');
-  renderAll();
-}
-
-function hasPlan(){
-  if(!currentUser.plan) return false;
-  return new Date(currentUser.planExpiry)>new Date();
-}
-
-function userVms(){return allVms.filter(v=>v.userId===currentUser.id);}
-
-// ══════════════════════════════════════════════
-// DEPLOY
-// ══════════════════════════════════════════════
-function deployVM(){
-  if(!hasPlan()){
-    document.getElementById('subModal').classList.add('open');
-    return;
-  }
-  const name    = document.getElementById('vmName').value.trim();
-  const email   = document.getElementById('vmEmail').value.trim();
-  const sshKey  = document.getElementById('vmSshKey').value.trim();
-  const os      = document.getElementById('vmOs').value;
-  const plan    = document.getElementById('vmPlan').value;
-  const expDays = parseInt(document.getElementById('vmExpiry').value);
-
-  if(!name)   return toast('VM name is required','error');
-  if(!sshKey) return toast('SSH public key is required','error');
-  if(!/^[a-z0-9][a-z0-9-]{0,30}$/.test(name)) return toast('Name must be lowercase letters, numbers, hyphens','error');
-
-  const uVms=userVms().filter(v=>v.status==='running'||v.status==='provisioning');
-  const limit=PLAN_LIMITS[currentUser.plan]?.vms||1;
-  if(uVms.length>=limit) return toast('VM limit reached for your plan ('+limit+' VMs). Upgrade to deploy more.','error');
-
-  const planSpecs={basic:{cpu:1,ram:2048,disk:40},pro:{cpu:4,ram:8192,disk:160},enterprise:{cpu:16,ram:32768,disk:640},
-    custom:{cpu:parseInt(document.getElementById('dCpu').value),ram:parseInt(document.getElementById('dRam').value)*1024,disk:parseInt(document.getElementById('dDisk').value)}};
-  const specs=planSpecs[plan];
-  const vmId=Math.floor(Math.random()*9000)+1000;
-  const expiresAt=daysFromNow(expDays);
-
-  const btn=document.getElementById('deployBtn');
-  btn.disabled=true; btn.textContent='Deploying...';
-
-  fetch(apiBase+'/api/vms/deploy',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({vmName:name,clientId:currentUser.id,clientEmail:email,clientSshPubkey:sshKey,os,plan,cpuCores:specs.cpu,ramMb:specs.ram,diskGb:specs.disk,vmId})
-  }).then(r=>r.json()).then(data=>{
-    if(data.error) throw new Error(data.error);
-    const vm={
-      id:data.vmId||vmId, name:data.vmName||name, userId:currentUser.id, userEmail:email, userName:currentUser.name,
-      status:'provisioning', buildUrl:data.buildUrl||null, buildNumber: data.buildNumber ? Number(data.buildNumber) : null,
-      os, plan, cpu:specs.cpu, ram:specs.ram/1024, disk:specs.disk,
-      ip:null, expiresAt, created:new Date().toISOString(),
-      cpu_usage:0, bw_used:0, lastActive:Date.now()
-    };
-    allVms.push(vm);
-    saveState();
-    renderAll();
-
-toast('VM "'+name+'" is being provisioned via Jenkins...','success');
-addNotif('🚀','VM deploying','Jenkins pipeline started for "'+name+'".');
-showTab('machines',document.getElementById('si-machines'));
-
-// ✅ clean + safe version
-if (vm.buildNumber) {
-  console.log("Polling build:", vm.buildNumber);
-  pollBuild(vm);
-} else {
-  console.error("No buildNumber → polling not started", vm);
-}
-
-}).catch(e=>{
-  // Simulate for demo if no backend
-  const vm={
-    id:vmId, name, userId:currentUser.id, userEmail:email, userName:currentUser.name,
-    status:'provisioning', buildUrl:null, buildNumber:null,
-    os, plan, cpu:specs.cpu, ram:specs.ram/1024, disk:specs.disk,
-    ip:null, expiresAt, created:new Date().toISOString(),
-    cpu_usage:0, bw_used:0, lastActive:Date.now()
-  };
-    allVms.push(vm);
-    saveState(); renderAll();
-    toast('VM "'+name+'" queued (demo mode — backend offline)','warn');
-    addNotif('🚀','VM queued','Pipeline started for "'+name+'" (demo mode).');
-    showTab('machines',document.getElementById('si-machines'));
-    // Simulate provisioning complete after 15s
-    setTimeout(()=>{
-      vm.status='running'; vm.ip='192.168.0.'+(Math.floor(Math.random()*200)+50);
-      vm.cpu_usage=Math.floor(Math.random()*40)+5;
-      vm.lastActive=Date.now();
-      saveState(); renderAll();
-      toast('VM "'+name+'" is ready! IP: '+vm.ip,'success');
-      addNotif('✅','VM ready','"'+name+'" is running at '+vm.ip);
-    },15000);
-  }).finally(()=>{btn.disabled=false;btn.textContent='Deploy VM';});
-}
-
-function pollBuild(vm){
-  if(!vm.buildNumber) return;
-  const t=setInterval(async()=>{
-    try{
-      const r=await fetch(apiBase+'/api/vms/status/'+vm.buildNumber);
-      const d=await r.json();
-      if(!d.building){
-        clearInterval(t);
-        vm.status=d.status==='SUCCESS'?'running':'failed';
-        if(d.ip) vm.ip=d.ip;
-        vm.lastActive=Date.now();
-        saveState(); renderAll();
-        if(vm.status==='running'){
-          toast('VM "'+vm.name+'" is ready! IP: '+vm.ip,'success');
-          addNotif('✅','VM ready','"'+vm.name+'" running at '+(vm.ip||'unknown'));
-        } else {
-          toast('VM "'+vm.name+'" failed to provision','error');
-          addNotif('❌','VM failed','"'+vm.name+'" provisioning failed.');
-        }
-      }
-    }catch{}
-  },8000);
-  pollTimers[vm.id]=t;
-}
-
-// ══════════════════════════════════════════════
-// VM ACTIONS
-// ══════════════════════════════════════════════
-async function destroyVM(id){
-  const vm=allVms.find(v=>v.id==id); if(!vm) return;
-  if(!confirm('Destroy "'+vm.name+'"? This cannot be undone.')) return;
-  vm.status='provisioning'; saveState(); renderAll();
-  try{
-    const r=await fetch(apiBase+'/api/vms/destroy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vmName:vm.name,vmId:vm.id})});
-    if(!r.ok) throw new Error();
-    toast('Destroying '+vm.name+'...','warn');
-    addNotif('🗑️','VM destroying','"'+vm.name+'" is being removed.');
-    setTimeout(()=>{allVms=allVms.filter(v=>v.id!=id);saveState();renderAll();},20000);
-  }catch{
-    // Demo fallback
-    setTimeout(()=>{allVms=allVms.filter(v=>v.id!=id);saveState();renderAll();toast(vm.name+' destroyed.','success');},3000);
-  }
-}
-
-function stopVM(id){
-  const vm=allVms.find(v=>v.id==id); if(!vm) return;
-  vm.status='stopped'; vm.cpu_usage=0; vm.lastActive=Date.now();
-  saveState(); renderAll();
-  toast('"'+vm.name+'" stopped.','success');
-  addNotif('⏹️','VM stopped','"'+vm.name+'" has been stopped.');
-}
-function startVM(id){
-  const vm=allVms.find(v=>v.id==id); if(!vm) return;
-  vm.status='running'; vm.cpu_usage=Math.floor(Math.random()*30)+5; vm.lastActive=Date.now();
-  saveState(); renderAll();
-  toast('"'+vm.name+'" started.','success');
-  addNotif('▶️','VM started','"'+vm.name+'" is running.');
-}
-
-// ══════════════════════════════════════════════
-// EXPIRY CHECK
-// ══════════════════════════════════════════════
-function checkExpiry(){
-  if(!currentUser) return;
-  const now=new Date();
-  userVms().forEach(vm=>{
-    if(vm.status!=='running'&&vm.status!=='stopped') return;
-    const exp=new Date(vm.expiresAt);
-    const daysLeft=Math.ceil((exp-now)/86400000);
-    if(daysLeft<=3&&daysLeft>0){
-      addNotif('⏰','VM expiring soon','"'+vm.name+'" expires in '+daysLeft+' day(s).');
+  function getSupportedFormat(internalFormat,format,type){
+    if(!supportRenderTextureFormat(internalFormat,format,type)){
+      if(internalFormat===gl.R16F)return getSupportedFormat(gl.RG16F,gl.RG,type);
+      if(internalFormat===gl.RG16F)return getSupportedFormat(gl.RGBA16F,gl.RGBA,type);
+      return null;
     }
-    if(daysLeft<=0&&vm.status!=='expired'){
-      vm.status='expired';
-      saveState();
-      addNotif('🔴','VM expired','"'+vm.name+'" has expired and been stopped.');
-      toast('"'+vm.name+'" has expired.','error');
-    }
+    return{internalFormat,format};
+  }
+  function supportRenderTextureFormat(internalFormat,format,type){
+    const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D,0,internalFormat,4,4,0,format,type,null);
+    const fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+    return gl.checkFramebufferStatus(gl.FRAMEBUFFER)===gl.FRAMEBUFFER_COMPLETE;
+  }
+
+  let fmtRGBA,fmtRG,fmtR;
+  if(isWebGL2){fmtRGBA=getSupportedFormat(gl.RGBA16F,gl.RGBA,halfFloatTexType);fmtRG=getSupportedFormat(gl.RG16F,gl.RG,halfFloatTexType);fmtR=getSupportedFormat(gl.R16F,gl.RED,halfFloatTexType);}
+  else{fmtRGBA=getSupportedFormat(gl.RGBA,gl.RGBA,halfFloatTexType);fmtRG=fmtRGBA;fmtR=fmtRGBA;}
+
+  const CFG={SIM_RESOLUTION:128,DYE_RESOLUTION:1024,DENSITY_DISSIPATION:3.5,VELOCITY_DISSIPATION:0.5,PRESSURE:0.1,PRESSURE_ITERATIONS:20,CURL:3,SPLAT_RADIUS:0.01,SPLAT_FORCE:6000,SHADING:true,COLOR_UPDATE_SPEED:10,RAINBOW_MODE:false,COLOR:'#556bf7'};
+
+  function compileShader(type,src,keywords){
+    let s=src;if(keywords)keywords.forEach(k=>{s='#define '+k+'\n'+s;});
+    const sh=gl.createShader(type);gl.shaderSource(sh,s);gl.compileShader(sh);return sh;
+  }
+  function createProgram(vs,fs){const p=gl.createProgram();gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);return p;}
+  function getUniforms(p){const u=[];const n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(let i=0;i<n;i++){const name=gl.getActiveUniform(p,i).name;u[name]=gl.getUniformLocation(p,name);}return u;}
+
+  const baseVS=compileShader(gl.VERTEX_SHADER,`precision highp float;attribute vec2 aPosition;varying vec2 vUv;varying vec2 vL;varying vec2 vR;varying vec2 vT;varying vec2 vB;uniform vec2 texelSize;void main(){vUv=aPosition*0.5+0.5;vL=vUv-vec2(texelSize.x,0.0);vR=vUv+vec2(texelSize.x,0.0);vT=vUv+vec2(0.0,texelSize.y);vB=vUv-vec2(0.0,texelSize.y);gl_Position=vec4(aPosition,0.0,1.0);}`);
+  const splatFS=compileShader(gl.FRAGMENT_SHADER,`precision highp float;precision highp sampler2D;varying vec2 vUv;uniform sampler2D uTarget;uniform float aspectRatio;uniform vec3 color;uniform vec2 point;uniform float radius;void main(){vec2 p=vUv-point.xy;p.x*=aspectRatio;vec3 splat=exp(-dot(p,p)/radius)*color;vec3 base=texture2D(uTarget,vUv).xyz;gl_FragColor=vec4(base+splat,1.0);}`);
+  const advFS=compileShader(gl.FRAGMENT_SHADER,`precision highp float;precision highp sampler2D;varying vec2 vUv;uniform sampler2D uVelocity;uniform sampler2D uSource;uniform vec2 texelSize;uniform vec2 dyeTexelSize;uniform float dt;uniform float dissipation;vec4 bilerp(sampler2D sam,vec2 uv,vec2 tsize){vec2 st=uv/tsize-0.5;vec2 iuv=floor(st);vec2 fuv=fract(st);vec4 a=texture2D(sam,(iuv+vec2(0.5,0.5))*tsize);vec4 b=texture2D(sam,(iuv+vec2(1.5,0.5))*tsize);vec4 c=texture2D(sam,(iuv+vec2(0.5,1.5))*tsize);vec4 d=texture2D(sam,(iuv+vec2(1.5,1.5))*tsize);return mix(mix(a,b,fuv.x),mix(c,d,fuv.x),fuv.y);}void main(){${supportLinear?'vec2 coord=vUv-dt*texture2D(uVelocity,vUv).xy*texelSize;vec4 result=texture2D(uSource,coord);':'vec2 coord=vUv-dt*bilerp(uVelocity,vUv,texelSize).xy*texelSize;vec4 result=bilerp(uSource,coord,dyeTexelSize);'}float decay=1.0+dissipation*dt;gl_FragColor=result/decay;}`,supportLinear?null:['MANUAL_FILTERING']);
+  const divFS=compileShader(gl.FRAGMENT_SHADER,`precision mediump float;precision mediump sampler2D;varying highp vec2 vUv;varying highp vec2 vL;varying highp vec2 vR;varying highp vec2 vT;varying highp vec2 vB;uniform sampler2D uVelocity;void main(){float L=texture2D(uVelocity,vL).x;float R=texture2D(uVelocity,vR).x;float T=texture2D(uVelocity,vT).y;float B=texture2D(uVelocity,vB).y;vec2 C=texture2D(uVelocity,vUv).xy;if(vL.x<0.0){L=-C.x;}if(vR.x>1.0){R=-C.x;}if(vT.y>1.0){T=-C.y;}if(vB.y<0.0){B=-C.y;}gl_FragColor=vec4(0.5*(R-L+T-B),0.0,0.0,1.0);}`);
+  const curlFS=compileShader(gl.FRAGMENT_SHADER,`precision mediump float;precision mediump sampler2D;varying highp vec2 vUv;varying highp vec2 vL;varying highp vec2 vR;varying highp vec2 vT;varying highp vec2 vB;uniform sampler2D uVelocity;void main(){float L=texture2D(uVelocity,vL).y;float R=texture2D(uVelocity,vR).y;float T=texture2D(uVelocity,vT).x;float B=texture2D(uVelocity,vB).x;gl_FragColor=vec4(0.5*(R-L-T+B),0.0,0.0,1.0);}`);
+  const vortFS=compileShader(gl.FRAGMENT_SHADER,`precision highp float;precision highp sampler2D;varying vec2 vUv;varying vec2 vL;varying vec2 vR;varying vec2 vT;varying vec2 vB;uniform sampler2D uVelocity;uniform sampler2D uCurl;uniform float curl;uniform float dt;void main(){float L=texture2D(uCurl,vL).x;float R=texture2D(uCurl,vR).x;float T=texture2D(uCurl,vT).x;float B=texture2D(uCurl,vB).x;float C=texture2D(uCurl,vUv).x;vec2 force=0.5*vec2(abs(T)-abs(B),abs(R)-abs(L));force/=length(force)+0.0001;force*=curl*C;force.y*=-1.0;vec2 velocity=texture2D(uVelocity,vUv).xy;velocity+=force*dt;velocity=min(max(velocity,-1000.0),1000.0);gl_FragColor=vec4(velocity,0.0,1.0);}`);
+  const presFS=compileShader(gl.FRAGMENT_SHADER,`precision mediump float;precision mediump sampler2D;varying highp vec2 vUv;varying highp vec2 vL;varying highp vec2 vR;varying highp vec2 vT;varying highp vec2 vB;uniform sampler2D uPressure;uniform sampler2D uDivergence;void main(){float L=texture2D(uPressure,vL).x;float R=texture2D(uPressure,vR).x;float T=texture2D(uPressure,vT).x;float B=texture2D(uPressure,vB).x;float C=texture2D(uPressure,vUv).x;float divergence=texture2D(uDivergence,vUv).x;gl_FragColor=vec4((L+R+B+T-divergence)*0.25,0.0,0.0,1.0);}`);
+  const gradFS=compileShader(gl.FRAGMENT_SHADER,`precision mediump float;precision mediump sampler2D;varying highp vec2 vUv;varying highp vec2 vL;varying highp vec2 vR;varying highp vec2 vT;varying highp vec2 vB;uniform sampler2D uPressure;uniform sampler2D uVelocity;void main(){float L=texture2D(uPressure,vL).x;float R=texture2D(uPressure,vR).x;float T=texture2D(uPressure,vT).x;float B=texture2D(uPressure,vB).x;vec2 velocity=texture2D(uVelocity,vUv).xy;velocity.xy-=vec2(R-L,T-B);gl_FragColor=vec4(velocity,0.0,1.0);}`);
+  const clearFS=compileShader(gl.FRAGMENT_SHADER,`precision mediump float;precision mediump sampler2D;varying highp vec2 vUv;uniform sampler2D uTexture;uniform float value;void main(){gl_FragColor=value*texture2D(uTexture,vUv);}`);
+  const displayFS=compileShader(gl.FRAGMENT_SHADER,`precision highp float;precision highp sampler2D;varying vec2 vUv;varying vec2 vL;varying vec2 vR;varying vec2 vT;varying vec2 vB;uniform sampler2D uTexture;uniform vec2 texelSize;void main(){vec3 c=texture2D(uTexture,vUv).rgb;${CFG.SHADING?'vec3 lc=texture2D(uTexture,vL).rgb;vec3 rc=texture2D(uTexture,vR).rgb;vec3 tc=texture2D(uTexture,vT).rgb;vec3 bc=texture2D(uTexture,vB).rgb;float dx=length(rc)-length(lc);float dy=length(tc)-length(bc);vec3 n=normalize(vec3(dx,dy,length(texelSize)));vec3 l=vec3(0.0,0.0,1.0);float diffuse=clamp(dot(n,l)+0.7,0.7,1.0);c*=diffuse;':''}float a=max(c.r,max(c.g,c.b));gl_FragColor=vec4(c,a);}`);
+
+  const splatProg=createProgram(baseVS,splatFS);const splatU=getUniforms(splatProg);
+  const advProg=createProgram(baseVS,advFS);const advU=getUniforms(advProg);
+  const divProg=createProgram(baseVS,divFS);const divU=getUniforms(divProg);
+  const curlProg=createProgram(baseVS,curlFS);const curlU=getUniforms(curlProg);
+  const vortProg=createProgram(baseVS,vortFS);const vortU=getUniforms(vortProg);
+  const presProg=createProgram(baseVS,presFS);const presU=getUniforms(presProg);
+  const gradProg=createProgram(baseVS,gradFS);const gradU=getUniforms(gradProg);
+  const clearProg=createProgram(baseVS,clearFS);const clearU=getUniforms(clearProg);
+  const displayProg=createProgram(baseVS,displayFS);const displayU=getUniforms(displayProg);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,-1,1,1,1,1,-1]),gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,gl.createBuffer());
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array([0,1,2,0,2,3]),gl.STATIC_DRAW);
+  gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);gl.enableVertexAttribArray(0);
+
+  function blit(target,clear=false){
+    if(target==null){gl.viewport(0,0,gl.drawingBufferWidth,gl.drawingBufferHeight);gl.bindFramebuffer(gl.FRAMEBUFFER,null);}
+    else{gl.viewport(0,0,target.width,target.height);gl.bindFramebuffer(gl.FRAMEBUFFER,target.fbo);}
+    if(clear){gl.clearColor(0,0,0,1);gl.clear(gl.COLOR_BUFFER_BIT);}
+    gl.drawElements(gl.TRIANGLES,6,gl.UNSIGNED_SHORT,0);
+  }
+  function createFBO(w,h,internalFormat,format,type,param){
+    gl.activeTexture(gl.TEXTURE0);const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,param);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,param);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D,0,internalFormat,w,h,0,format,type,null);
+    const fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+    gl.viewport(0,0,w,h);gl.clear(gl.COLOR_BUFFER_BIT);
+    return{texture:tex,fbo,width:w,height:h,texelSizeX:1/w,texelSizeY:1/h,attach(id){gl.activeTexture(gl.TEXTURE0+id);gl.bindTexture(gl.TEXTURE_2D,tex);return id;}};
+  }
+  function createDoubleFBO(w,h,internalFormat,format,type,param){
+    let f1=createFBO(w,h,internalFormat,format,type,param);let f2=createFBO(w,h,internalFormat,format,type,param);
+    return{width:w,height:h,texelSizeX:f1.texelSizeX,texelSizeY:f1.texelSizeY,get read(){return f1;},set read(v){f1=v;},get write(){return f2;},set write(v){f2=v;},swap(){let t=f1;f1=f2;f2=t;}};
+  }
+  function getRes(res){let ar=gl.drawingBufferWidth/gl.drawingBufferHeight;if(ar<1)ar=1/ar;const min=Math.round(res);const max=Math.round(res*ar);return gl.drawingBufferWidth>gl.drawingBufferHeight?{width:max,height:min}:{width:min,height:max};}
+  const filtering=supportLinear?gl.LINEAR:gl.NEAREST;
+  let dye,velocity,divergence,curl,pressure;
+  function initFBOs(){
+    const simRes=getRes(CFG.SIM_RESOLUTION);const dyeRes=getRes(CFG.DYE_RESOLUTION);
+    gl.disable(gl.BLEND);
+    dye=createDoubleFBO(dyeRes.width,dyeRes.height,fmtRGBA.internalFormat,fmtRGBA.format,halfFloatTexType,filtering);
+    velocity=createDoubleFBO(simRes.width,simRes.height,fmtRG.internalFormat,fmtRG.format,halfFloatTexType,filtering);
+    divergence=createFBO(simRes.width,simRes.height,fmtR.internalFormat,fmtR.format,halfFloatTexType,gl.NEAREST);
+    curl=createFBO(simRes.width,simRes.height,fmtR.internalFormat,fmtR.format,halfFloatTexType,gl.NEAREST);
+    pressure=createDoubleFBO(simRes.width,simRes.height,fmtR.internalFormat,fmtR.format,halfFloatTexType,gl.NEAREST);
+  }
+  initFBOs();
+
+  function HSVtoRGB(h,s,v){let r,g,b,i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);switch(i%6){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;case 5:r=v;g=p;b=q;break;}return{r,g,b};}
+  function hexToRGB(hex){const v=hex.replace('#','');const r=parseInt(v.slice(0,2),16)/255;const g=parseInt(v.slice(2,4),16)/255;const b=parseInt(v.slice(4,6),16)/255;return{r:r*0.15,g:g*0.15,b:b*0.15};}
+  function genColor(){if(!CFG.RAINBOW_MODE)return hexToRGB(CFG.COLOR);let c=HSVtoRGB(Math.random(),1,1);c.r*=0.15;c.g*=0.15;c.b*=0.15;return c;}
+  function correctRadius(r){const ar=canvas.width/canvas.height;if(ar>1)r*=ar;return r;}
+  function correctDx(d){const ar=canvas.width/canvas.height;if(ar<1)d*=ar;return d;}
+  function correctDy(d){const ar=canvas.width/canvas.height;if(ar>1)d/=ar;return d;}
+
+  function splat(x,y,dx,dy,color){
+    gl.useProgram(splatProg);gl.uniform1i(splatU.uTarget,velocity.read.attach(0));
+    gl.uniform1f(splatU.aspectRatio,canvas.width/canvas.height);gl.uniform2f(splatU.point,x,y);
+    gl.uniform3f(splatU.color,dx,dy,0);gl.uniform1f(splatU.radius,correctRadius(CFG.SPLAT_RADIUS/100));
+    blit(velocity.write);velocity.swap();
+    gl.uniform1i(splatU.uTarget,dye.read.attach(0));gl.uniform3f(splatU.color,color.r,color.g,color.b);
+    blit(dye.write);dye.swap();
+  }
+
+  const pointer={id:-1,texcoordX:0,texcoordY:0,prevTexcoordX:0,prevTexcoordY:0,deltaX:0,deltaY:0,down:false,moved:false,color:genColor()};
+  let colorTimer=0,lastTime=Date.now();
+
+  function step(dt){
+    gl.disable(gl.BLEND);
+    gl.useProgram(curlProg);gl.uniform2f(curlU.texelSize,velocity.texelSizeX,velocity.texelSizeY);gl.uniform1i(curlU.uVelocity,velocity.read.attach(0));blit(curl);
+    gl.useProgram(vortProg);gl.uniform2f(vortU.texelSize,velocity.texelSizeX,velocity.texelSizeY);gl.uniform1i(vortU.uVelocity,velocity.read.attach(0));gl.uniform1i(vortU.uCurl,curl.attach(1));gl.uniform1f(vortU.curl,CFG.CURL);gl.uniform1f(vortU.dt,dt);blit(velocity.write);velocity.swap();
+    gl.useProgram(divProg);gl.uniform2f(divU.texelSize,velocity.texelSizeX,velocity.texelSizeY);gl.uniform1i(divU.uVelocity,velocity.read.attach(0));blit(divergence);
+    gl.useProgram(clearProg);gl.uniform1i(clearU.uTexture,pressure.read.attach(0));gl.uniform1f(clearU.value,CFG.PRESSURE);blit(pressure.write);pressure.swap();
+    gl.useProgram(presProg);gl.uniform2f(presU.texelSize,velocity.texelSizeX,velocity.texelSizeY);gl.uniform1i(presU.uDivergence,divergence.attach(0));
+    for(let i=0;i<CFG.PRESSURE_ITERATIONS;i++){gl.uniform1i(presU.uPressure,pressure.read.attach(1));blit(pressure.write);pressure.swap();}
+    gl.useProgram(gradProg);gl.uniform2f(gradU.texelSize,velocity.texelSizeX,velocity.texelSizeY);gl.uniform1i(gradU.uPressure,pressure.read.attach(0));gl.uniform1i(gradU.uVelocity,velocity.read.attach(1));blit(velocity.write);velocity.swap();
+    gl.useProgram(advProg);gl.uniform2f(advU.texelSize,velocity.texelSizeX,velocity.texelSizeY);
+    if(!supportLinear)gl.uniform2f(advU.dyeTexelSize,velocity.texelSizeX,velocity.texelSizeY);
+    const velId=velocity.read.attach(0);gl.uniform1i(advU.uVelocity,velId);gl.uniform1i(advU.uSource,velId);gl.uniform1f(advU.dt,dt);gl.uniform1f(advU.dissipation,CFG.VELOCITY_DISSIPATION);blit(velocity.write);velocity.swap();
+    if(!supportLinear)gl.uniform2f(advU.dyeTexelSize,dye.texelSizeX,dye.texelSizeY);
+    gl.uniform1i(advU.uVelocity,velocity.read.attach(0));gl.uniform1i(advU.uSource,dye.read.attach(1));gl.uniform1f(advU.dissipation,CFG.DENSITY_DISSIPATION);blit(dye.write);dye.swap();
+  }
+
+  function render(){
+    gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);gl.enable(gl.BLEND);
+    gl.useProgram(displayProg);
+    if(CFG.SHADING)gl.uniform2f(displayU.texelSize,1/gl.drawingBufferWidth,1/gl.drawingBufferHeight);
+    gl.uniform1i(displayU.uTexture,dye.read.attach(0));blit(null);
+  }
+
+  function resize(){const w=window.innerWidth,h=window.innerHeight;if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;initFBOs();}}
+
+  function frame(){
+    const now=Date.now();let dt=Math.min((now-lastTime)/1000,0.016666);lastTime=now;
+    resize();
+    colorTimer+=dt*CFG.COLOR_UPDATE_SPEED;
+    if(colorTimer>=1){colorTimer=0;pointer.color=genColor();}
+    if(pointer.moved){pointer.moved=false;splat(pointer.texcoordX,pointer.texcoordY,pointer.deltaX*CFG.SPLAT_FORCE,pointer.deltaY*CFG.SPLAT_FORCE,pointer.color);}
+    step(dt);render();requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  const scalePixel=v=>Math.floor(v*(window.devicePixelRatio||1));
+  window.addEventListener('mousemove',e=>{
+    const px=scalePixel(e.clientX),py=scalePixel(e.clientY);
+    pointer.prevTexcoordX=pointer.texcoordX;pointer.prevTexcoordY=pointer.texcoordY;
+    pointer.texcoordX=px/canvas.width;pointer.texcoordY=1-(py/canvas.height);
+    const dx=correctDx(pointer.texcoordX-pointer.prevTexcoordX);const dy=correctDy(pointer.texcoordY-pointer.prevTexcoordY);
+    pointer.moved=Math.abs(dx)>0||Math.abs(dy)>0;pointer.deltaX=dx;pointer.deltaY=dy;
   });
-  // 30 min plan expiry check
-  const planExp=new Date(currentUser.planExpiry);
-  const planDays=Math.ceil((planExp-now)/86400000);
-  if(planDays<=3&&planDays>0&&currentUser.plan){
-    addNotif('💳','Plan expiring','Your '+currentUser.plan+' plan expires in '+planDays+' day(s).');
-  }
-  renderAll();
-}
+  window.addEventListener('mousedown',e=>{
+    const px=scalePixel(e.clientX),py=scalePixel(e.clientY);
+    pointer.texcoordX=px/canvas.width;pointer.texcoordY=1-(py/canvas.height);
+    const c=genColor();c.r*=10;c.g*=10;c.b*=10;
+    splat(pointer.texcoordX,pointer.texcoordY,10*(Math.random()-.5),30*(Math.random()-.5),c);
+  });
+  window.addEventListener('touchmove',e=>{
+    const t=e.targetTouches[0];const px=scalePixel(t.clientX),py=scalePixel(t.clientY);
+    pointer.prevTexcoordX=pointer.texcoordX;pointer.prevTexcoordY=pointer.texcoordY;
+    pointer.texcoordX=px/canvas.width;pointer.texcoordY=1-(py/canvas.height);
+    const dx=correctDx(pointer.texcoordX-pointer.prevTexcoordX);const dy=correctDy(pointer.texcoordY-pointer.prevTexcoordY);
+    pointer.moved=true;pointer.deltaX=dx;pointer.deltaY=dy;
+  },{passive:true});
+})();
 
-// ══════════════════════════════════════════════
-// STATS TICK (simulated live monitoring)
-// ══════════════════════════════════════════════
-function startStatsTick(){
-  setInterval(()=>{
-    if(!currentUser) return;
-    const running=userVms().filter(v=>v.status==='running');
-    running.forEach(vm=>{
-      vm.cpu_usage=Math.min(100,Math.max(1,vm.cpu_usage+(Math.random()*10-5)));
-      vm.bw_used=(vm.bw_used||0)+Math.random()*0.5;
-    });
-    // Idle detection: VM running >5 min with no manual action
-    running.forEach(vm=>{
-      if(Date.now()-vm.lastActive>300000){
-        document.getElementById('idleWarning').style.display='flex';
-        if(!idleTimers[vm.id]){
-          idleTimers[vm.id]=true;
-          addNotif('⚠️','Idle VM detected','"'+vm.name+'" has been running for 5+ min with no activity.');
-        }
-      }
-    });
-    if(running.length===0) document.getElementById('idleWarning').style.display='none';
-    // CPU history
-    const avgCpu=running.length?running.reduce((a,v)=>a+v.cpu_usage,0)/running.length:0;
-    cpuHistory.push(Math.round(avgCpu)); cpuHistory.shift();
-    vmHistory.push(running.length); vmHistory.shift();
-    saveState();
-    updateStatsCards();
-    checkExpiry();
-  },5000);
-}
+// ══ APP LOGIC ══════════════════════════════
+let API=localStorage.getItem('vc_api')||'http://192.168.0.143:3000';
+const PLANS={basic:{price:29,vms:1,bw:1024,label:'Basic'},pro:{price:89,vms:5,bw:5120,label:'Pro'},enterprise:{price:249,vms:999,bw:999999,label:'Enterprise'}};
+const PLAN_SPECS={basic:{cpu:1,ram:2048,disk:40},pro:{cpu:4,ram:8192,disk:160},enterprise:{cpu:16,ram:32768,disk:640}};
+let users=JSON.parse(localStorage.getItem('vc_users')||'null')||[{id:'admin',name:'Shouaib',email:'admin@voltcore.tn',pass:'admin123',role:'admin',plan:'enterprise',planExpiry:dFN(365),joined:new Date().toISOString()}];
+let allVms=JSON.parse(localStorage.getItem('vc_vms')||'[]');
+let notifs=JSON.parse(localStorage.getItem('vc_notifs')||'[]');
+let cur=null,pollT={},cpuHist=Array(8).fill(0),vmHist=Array(8).fill(0),idleAlerted={},statTicker=null;
 
-function updateStatsCards(){
-  if(!currentUser) return;
-  const running=userVms().filter(v=>v.status==='running');
-  const prov=userVms().filter(v=>v.status==='provisioning');
-  const avgCpu=running.length?Math.round(running.reduce((a,v)=>a+v.cpu_usage,0)/running.length):0;
-  const totalBw=userVms().reduce((a,v)=>a+(v.bw_used||0),0);
-  const planInfo=PLAN_LIMITS[currentUser.plan]||{price:0,label:'None',bw:0};
-
-  document.getElementById('ov-active').textContent=running.length+(prov.length?' ('+prov.length+' prov.)':'');
-  document.getElementById('ov-cpu').textContent=avgCpu+'%';
-  document.getElementById('ov-bw').textContent=totalBw.toFixed(1)+' GB';
-  document.getElementById('ov-bw-sub').textContent='of '+(planInfo.bw>=999999?'Unlimited':planInfo.bw/1024+' TB');
-  document.getElementById('ov-bill').textContent=planInfo.price+' TND';
-  document.getElementById('ov-plan-label').textContent=planInfo.label+' plan';
-  const bwPct=planInfo.bw>=999999?5:Math.min(100,(totalBw/(planInfo.bw/1024))*100);
-  document.getElementById('bw-fill').style.width=bwPct+'%';
-  document.getElementById('ov-welcome').textContent='Welcome back, '+currentUser.name;
-  renderMiniChart('chart-cpu',cpuHistory,'var(--success)');
-  renderMiniChart('chart-vms',vmHistory,'var(--cyan)');
-}
-
-function renderMiniChart(id,data,color){
-  const el=document.getElementById(id); if(!el) return;
-  const max=Math.max(...data,1);
-  el.innerHTML=data.map(v=>`<div class="mini-bar" style="height:${Math.max(2,Math.round((v/max)*100))}%;background:${color}"></div>`).join('');
-}
-
-// ══════════════════════════════════════════════
-// RENDER
-// ══════════════════════════════════════════════
-function renderAll(){
-  if(!currentUser) return;
-  renderVmList();
-  updateStatsCards();
-  renderBilling();
-  renderAdmin();
-  renderNotifs();
-  // Deploy tab subscription gate
-  if(hasPlan()){
-    document.getElementById('subGateDiv').style.display='none';
-    document.getElementById('deployFormDiv').style.display='block';
-  } else {
-    document.getElementById('subGateDiv').style.display='block';
-    document.getElementById('deployFormDiv').style.display='none';
-  }
-}
-
-function renderVmList(){
-  const vms=userVms();
-  const now=new Date();
-  const makeRows=(list)=>list.map(vm=>{
-    const exp=new Date(vm.expiresAt);
-    const daysLeft=Math.max(0,Math.ceil((exp-now)/86400000));
-    const pct=Math.min(100,Math.round((1-daysLeft/30)*100));
-    const fillColor=daysLeft>7?'var(--success)':daysLeft>2?'var(--warn)':'var(--danger)';
-    const actions=vm.status==='running'
-      ?`<button class="btn btn-warn btn-xs" onclick="stopVM(${vm.id})">Stop</button>
-        <button class="btn btn-danger btn-xs" onclick="destroyVM(${vm.id})" style="margin-left:4px">Destroy</button>`
-      :vm.status==='stopped'
-      ?`<button class="btn btn-success btn-xs" onclick="startVM(${vm.id})">Start</button>
-        <button class="btn btn-danger btn-xs" onclick="destroyVM(${vm.id})" style="margin-left:4px">Destroy</button>`
-      :vm.status==='provisioning'
-      ?'<span style="font-size:.78rem;color:var(--warn)">⏳ Wait...</span>'
-      :vm.status==='expired'
-      ?'<button class="btn btn-danger btn-xs" onclick="destroyVM('+vm.id+')">Remove</button>'
-      :'<span style="font-size:.78rem;color:var(--danger)">Failed</span>';
-    return `<tr>
-      <td><b>${vm.name}</b><br/><span style="font-size:.73rem;color:var(--muted)">${vm.ip||'Pending IP...'}</span></td>
-      <td style="color:var(--muted)">${vm.cpu} vCPU · ${vm.ram} GB · ${vm.disk} GB</td>
-      <td style="color:var(--muted);font-size:.8rem">${vm.os}</td>
-      <td>${statusBadge(vm.status)}</td>
-      <td style="font-size:.78rem;color:var(--cyan)">${vm.status==='running'?Math.round(vm.cpu_usage)+'%':'—'}</td>
-      <td style="min-width:100px">
-        <div class="expiry-row"><span>${daysLeft}d</span><div class="bar"><div class="fill" style="width:${pct}%;background:${fillColor}"></div></div></div>
-      </td>
-      <td>${actions}</td>
-    </tr>`;
-  }).join('');
-
-  const tableHtml=(rows,cols)=>`<table class="vm-table">
-    <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-    <tbody>${rows}</tbody>
-  </table>`;
-  const cols=['Name','Specs','OS','Status','CPU','Expires','Actions'];
-
-  if(vms.length===0){
-    const empty='<div class="empty-state"><div class="es-icon">🖥️</div><p>No VMs yet. <a onclick="showTab(\'deploy\',document.getElementById(\'si-deploy\'))" style="color:var(--cyan);cursor:pointer">Deploy your first one.</a></p></div>';
-    document.getElementById('ov-vm-list').innerHTML=empty;
-    document.getElementById('vm-list-full').innerHTML=empty;
-  } else {
-    document.getElementById('ov-vm-list').innerHTML=tableHtml(makeRows(vms.slice(-3)),cols);
-    document.getElementById('vm-list-full').innerHTML=tableHtml(makeRows(vms),cols);
-  }
-}
-
-function statusBadge(s){
-  const m={running:['s-running','● Running'],provisioning:['s-provisioning','⏳ Provisioning'],failed:['s-failed','✗ Failed'],stopped:['s-stopped','■ Stopped'],expired:['s-expired','⌛ Expired']};
-  const[cls,label]=m[s]||['s-stopped',s];
-  return `<span class="status-badge ${cls}">${label}</span>`;
-}
-
-function renderBilling(){
-  if(!currentUser) return;
-  const p=PLAN_LIMITS[currentUser.plan]||{price:0,label:'None',vms:0};
-  const exp=new Date(currentUser.planExpiry);
-  document.getElementById('bill-plan').textContent=p.label;
-  document.getElementById('bill-price').textContent=p.price+' TND/month';
-  document.getElementById('bill-expires').textContent=exp.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  document.getElementById('bill-vmlimit').textContent=p.vms>=999?'Unlimited':p.vms+' VMs';
-  const items=userVms().filter(v=>v.status!=='expired');
-  document.getElementById('bill-items').innerHTML=items.length
-    ?items.map(v=>`<div class="bill-row"><span>${v.name} (${v.plan})</span><span>${PLAN_LIMITS[v.plan]?.price||0} TND</span></div>`).join('')
-    :'<div class="bill-row"><span style="color:var(--muted)">No active VMs</span><span>0 TND</span></div>';
-  document.getElementById('bill-total').textContent=p.price+' TND';
-  const months=['Jan','Feb','Mar','Apr','May'];
-  document.getElementById('bill-history').innerHTML=months.map((m,i)=>`<div class="bill-row"><span>${m} 2026</span><span>${p.price} TND <button class="btn btn-ghost btn-xs" onclick="toast('Downloading invoice...','success')">PDF</button></span></div>`).join('');
-}
-
-function renderAdmin(){
-  if(!currentUser||currentUser.role!=='admin') return;
-  // All VMs
-  const rows=allVms.map(vm=>`<tr>
-    <td><b>${vm.name}</b><br/><span style="font-size:.73rem;color:var(--muted)">${vm.ip||'—'}</span></td>
-    <td style="font-size:.8rem;color:var(--muted)">${vm.userName||vm.userEmail}</td>
-    <td style="color:var(--muted)">${vm.cpu}vCPU·${vm.ram}GB</td>
-    <td>${statusBadge(vm.status)}</td>
-    <td style="font-size:.8rem;color:var(--muted)">${new Date(vm.expiresAt).toLocaleDateString()}</td>
-    <td>
-      ${vm.status==='running'?`<button class="btn btn-warn btn-xs" onclick="adminStopVm(${vm.id})">Stop</button>`:''}
-      <button class="btn btn-danger btn-xs" onclick="adminDestroyVm(${vm.id})" style="margin-left:4px">Destroy</button>
-    </td>
-  </tr>`).join('');
-  document.getElementById('admin-vm-list').innerHTML=allVms.length
-    ?`<table class="vm-table"><thead><tr><th>Name</th><th>Owner</th><th>Specs</th><th>Status</th><th>Expires</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`
-    :'<div class="empty-state"><div class="es-icon">🖥️</div><p>No VMs in system.</p></div>';
-  document.getElementById('admin-vm-count').textContent=allVms.length+' total VMs';
-
-  // Users
-  document.getElementById('admin-user-list').innerHTML=users.map(u=>`<tr>
-    <td><b>${u.name}</b></td>
-    <td style="color:var(--muted)">${u.email}</td>
-    <td><span style="color:var(--cyan)">${u.plan||'None'}</span></td>
-    <td>${allVms.filter(v=>v.userId===u.id).length}</td>
-    <td style="color:var(--muted);font-size:.8rem">${new Date(u.joined).toLocaleDateString()}</td>
-    <td>${u.role==='admin'?'<span style="color:var(--purple);font-size:.8rem">Admin</span>':`<button class="btn btn-ghost btn-xs" onclick="adminDeleteUser('${u.id}')">Remove</button>`}</td>
-  </tr>`).join('');
-
-  // Billing
-  const revenue=users.reduce((a,u)=>(PLAN_LIMITS[u.plan]?.price||0)+a,0);
-  const subs=users.filter(u=>u.plan&&new Date(u.planExpiry)>new Date()).length;
-  document.getElementById('adm-rev').textContent=revenue+' TND';
-  document.getElementById('adm-subs').textContent=subs;
-  document.getElementById('adm-vms').textContent=allVms.length;
-  const plans={basic:0,pro:0,enterprise:0};
-  users.forEach(u=>{if(plans[u.plan]!==undefined)plans[u.plan]++;});
-  document.getElementById('adm-breakdown').innerHTML=Object.entries(plans).map(([p,c])=>`<div class="bill-row"><span>${p.charAt(0).toUpperCase()+p.slice(1)}</span><span>${c} users · ${c*PLAN_LIMITS[p].price} TND</span></div>`).join('');
-}
-
-function adminStopVm(id){const v=allVms.find(x=>x.id==id);if(v){v.status='stopped';saveState();renderAll();toast('VM stopped by admin','warn');}}
-function adminDestroyVm(id){if(!confirm('Destroy this VM?'))return;allVms=allVms.filter(v=>v.id!=id);saveState();renderAll();toast('VM destroyed by admin','success');}
-function adminDeleteUser(id){if(!confirm('Delete this user?'))return;users=users.filter(u=>u.id!==id);allVms=allVms.filter(v=>v.userId!==id);saveState();renderAll();toast('User removed','success');}
-
-// ══════════════════════════════════════════════
-// NOTIFICATIONS
-// ══════════════════════════════════════════════
-function addNotif(icon,title,text){
-  notifications.unshift({icon,title,text,time:new Date().toISOString()});
-  if(notifications.length>20) notifications.pop();
-  saveState(); renderNotifs();
-  document.getElementById('notifBadge').classList.add('show');
-}
-function renderNotifs(){
-  const list=document.getElementById('notifList');
-  if(notifications.length===0){list.innerHTML='<div class="notif-empty">No notifications yet</div>';return;}
-  list.innerHTML=notifications.map(n=>`<div class="notif-item">
-    <div class="ni-icon">${n.icon}</div>
-    <div class="ni-text"><b>${n.title}</b>${n.text}</div>
-    <div class="ni-time">${timeSince(n.time)}</div>
-  </div>`).join('');
-}
-function clearNotifs(){notifications=[];saveState();renderNotifs();document.getElementById('notifBadge').classList.remove('show');}
-function toggleNotifDropdown(){
-  document.getElementById('notifDropdown').classList.toggle('open');
-  document.getElementById('notifBadge').classList.remove('show');
-}
-function timeSince(iso){
-  const s=Math.floor((Date.now()-new Date(iso))/1000);
-  if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';
-}
-document.addEventListener('click',e=>{if(!e.target.closest('#notifBell')&&!e.target.closest('#notifDropdown'))document.getElementById('notifDropdown').classList.remove('open');});
-
-// ══════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════
-function toast(msg,type='info'){
-  const el=document.createElement('div');
-  const icons={success:'✅',error:'❌',warn:'⚠️',info:'ℹ️'};
-  el.className='toast '+(type==='error'?'error':type==='success'?'success':type==='warn'?'warn':'');
-  el.innerHTML=`<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
-  document.getElementById('toastContainer').appendChild(el);
-  setTimeout(()=>el.remove(),4500);
-}
-
-// ══════════════════════════════════════════════
-// API HEALTH
-// ══════════════════════════════════════════════
-async function checkApi(){
-  try{
-    const r=await fetch(apiBase+'/health',{signal:AbortSignal.timeout(3000)});
-    const ok=r.ok;
-    document.getElementById('apiDot').className='api-dot '+(ok?'online':'offline');
-    document.getElementById('apiLabel').textContent=ok?'API online':'API error';
-  }catch{
-    document.getElementById('apiDot').className='api-dot offline';
-    document.getElementById('apiLabel').textContent='API offline';
-  }
-}
+function dFN(d){const dt=new Date();dt.setDate(dt.getDate()+d);return dt.toISOString();}
+function save(){localStorage.setItem('vc_users',JSON.stringify(users));localStorage.setItem('vc_vms',JSON.stringify(allVms));localStorage.setItem('vc_notifs',JSON.stringify(notifs));}
+function myVms(){return allVms.filter(v=>v.uid===cur.id);}
+function hasPlan(){return cur.plan&&new Date(cur.planExpiry)>new Date();}
+function openAuth(tab){document.getElementById('authModal').classList.add('open');switchTab(tab==='reg'?'reg':'login');}
+function closeAuth(){document.getElementById('authModal').classList.remove('open');}
+function switchTab(t){document.getElementById('auth-login').style.display=t==='login'?'block':'none';document.getElementById('auth-reg').style.display=t==='reg'?'block':'none';document.getElementById('tab-login').classList.toggle('active',t==='login');document.getElementById('tab-reg').classList.toggle('active',t==='reg');}
+document.getElementById('authModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeAuth();});
+function doLogin(){const email=document.getElementById('lEmail').value.trim(),pass=document.getElementById('lPass').value;const u=users.find(x=>x.email===email&&x.pass===pass);if(!u)return toast('Invalid email or password','err');cur=u;closeAuth();enterDash();}
+function doRegister(){const name=document.getElementById('rName').value.trim(),email=document.getElementById('rEmail').value.trim(),pass=document.getElementById('rPass').value,plan=document.getElementById('rPlan').value;if(!name||!email||!pass)return toast('All fields are required','err');if(pass.length<6)return toast('Password must be at least 6 characters','err');if(users.find(x=>x.email===email))return toast('Email already registered','err');const u={id:'u'+Date.now(),name,email,pass,role:'user',plan,planExpiry:dFN(30),joined:new Date().toISOString()};users.push(u);cur=u;save();closeAuth();toast('Welcome to VoltCore, '+name+'!','ok');enterDash();}
+function enterDash(){document.getElementById('landingPage').classList.remove('active');document.getElementById('dashPage').classList.add('active');document.getElementById('navSignIn').style.display='none';document.getElementById('navGet').style.display='none';document.getElementById('navUser').style.display='inline';document.getElementById('navUser').textContent=cur.name;document.getElementById('navOut').style.display='inline';document.getElementById('notifBell').style.display='flex';document.getElementById('landingNav').style.display='none';document.getElementById('adminSec').style.display=cur.role==='admin'?'block':'none';document.getElementById('sbAvatar').textContent=cur.name.charAt(0).toUpperCase();document.getElementById('sbName').textContent=cur.name;document.getElementById('sbPlan').textContent=(PLANS[cur.plan]?.label||'No plan')+' plan';document.getElementById('vmE').value=cur.email;document.getElementById('setName').value=cur.name;document.getElementById('setEmail').value=cur.email;showTab('ov',document.getElementById('si-ov'));renderAll();checkApi();if(statTicker)clearInterval(statTicker);statTicker=setInterval(statTick,5000);addNotif('👋','Welcome back!','Signed in as '+cur.name+'.');sessionStorage.setItem('vc_cur_id',cur.id);}
+function logout(){cur=null;Object.values(pollT).forEach(clearInterval);pollT={};if(statTicker){clearInterval(statTicker);statTicker=null;}sessionStorage.removeItem('vc_cur_id');document.getElementById('dashPage').classList.remove('active');document.getElementById('landingPage').classList.add('active');document.getElementById('navSignIn').style.display='inline';document.getElementById('navGet').style.display='inline';document.getElementById('navUser').style.display='none';document.getElementById('navOut').style.display='none';document.getElementById('notifBell').style.display='none';document.getElementById('landingNav').style.display='flex';if(window._restartRays)window._restartRays();}
+function activatePlan(plan){cur.plan=plan;cur.planExpiry=dFN(30);const u=users.find(x=>x.id===cur.id);if(u){u.plan=plan;u.planExpiry=cur.planExpiry;}save();closeSub();document.getElementById('sbPlan').textContent=PLANS[plan].label+' plan';toast('Subscribed to '+PLANS[plan].label+'!','ok');addNotif('🎉','Plan activated','Your '+PLANS[plan].label+' plan is now active.');renderAll();}
+function closeSub(){document.getElementById('subModal').classList.remove('open');}
+document.getElementById('subModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSub();});
+function deployVM(){if(!hasPlan()){document.getElementById('subModal').classList.add('open');return;}const name=document.getElementById('vmN').value.trim(),email=document.getElementById('vmE').value.trim(),ssh=document.getElementById('vmK').value.trim(),os=document.getElementById('vmOs').value,plan=document.getElementById('vmPlan').value,expD=parseInt(document.getElementById('vmExp').value);if(!name)return toast('VM name is required','err');if(!ssh)return toast('SSH public key is required','err');if(!/^[a-z0-9][a-z0-9-]{0,30}$/.test(name))return toast('Name: lowercase letters, numbers, hyphens only','err');const active=myVms().filter(v=>['running','provisioning'].includes(v.status));const limit=PLANS[cur.plan]?.vms||1;if(active.length>=limit)return toast('VM limit reached ('+limit+'). Upgrade your plan.','err');const specs=plan==='custom'?{cpu:+document.getElementById('dCpu').value,ram:+document.getElementById('dRam').value*1024,disk:+document.getElementById('dDisk').value}:PLAN_SPECS[plan]||PLAN_SPECS.basic;const btn=document.getElementById('depBtn');btn.disabled=true;btn.innerHTML='<div class="spin"></div>Deploying...';fetch(API+'/api/vms/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vmName:name,clientId:cur.id,clientEmail:email,clientSshPubkey:ssh,os,plan,cpuCores:specs.cpu,ramMb:specs.ram,diskGb:specs.disk})}).then(r=>r.json()).then(data=>{if(data.error)throw new Error(data.error);const vm={id:data.vmId,name:data.vmName||name,uid:cur.id,userEmail:email,userName:cur.name,status:'provisioning',buildUrl:data.buildUrl,buildNumber:data.buildNumber,os,plan,cpu:specs.cpu,ram:specs.ram/1024,disk:specs.disk,ip:null,expiresAt:dFN(expD),created:new Date().toISOString(),cpu_usage:0,bw_used:0,lastActive:Date.now()};allVms.push(vm);save();renderAll();toast('"'+name+'" is being provisioned!','ok');addNotif('🚀','VM deploying','Jenkins pipeline triggered for "'+name+'".');showTab('vms',document.getElementById('si-vms'));if(data.buildNumber)pollBuild(vm);}).catch(e=>{const vmId=Math.floor(7000+Math.random()*1999);const vm={id:vmId,name,uid:cur.id,userEmail:email,userName:cur.name,status:'provisioning',buildUrl:null,buildNumber:null,os,plan,cpu:specs.cpu,ram:specs.ram/1024,disk:specs.disk,ip:null,expiresAt:dFN(expD),created:new Date().toISOString(),cpu_usage:0,bw_used:0,lastActive:Date.now()};allVms.push(vm);save();renderAll();toast('Queued (demo — API: '+e.message.slice(0,40)+')','warn');addNotif('🚀','VM queued','Demo mode: "'+name+'" simulating provisioning.');showTab('vms',document.getElementById('si-vms'));setTimeout(()=>{vm.status='running';vm.ip='192.168.0.'+(Math.floor(Math.random()*200)+50);vm.cpu_usage=15;vm.lastActive=Date.now();save();renderAll();toast('"'+name+'" ready! IP: '+vm.ip,'ok');addNotif('✅','VM ready','"'+name+'" running at '+vm.ip);},12000);}).finally(()=>{btn.disabled=false;btn.innerHTML='Deploy VM →';});}
+function pollBuild(vm){const t=setInterval(async()=>{try{const r=await fetch(API+'/api/vms/status/'+vm.buildNumber);const d=await r.json();if(!d.building){clearInterval(t);delete pollT[vm.id];vm.status=d.status==='SUCCESS'?'running':'failed';if(d.ip)vm.ip=d.ip;vm.lastActive=Date.now();save();renderAll();if(vm.status==='running'){toast('"'+vm.name+'" ready! IP: '+(vm.ip||'pending'),'ok');addNotif('✅','VM ready','"'+vm.name+'" running at '+(vm.ip||'—'));}else{toast('"'+vm.name+'" provisioning failed','err');addNotif('❌','VM failed','"'+vm.name+'" failed.');}}}catch{}},8000);pollT[vm.id]=t;}
+async function vmAction(action,vm){const map={stop:'Stopping',start:'Starting',delete:'Deleting'};toast(map[action]+' "'+vm.name+'"...','warn');const ep={stop:'/api/vms/stop',start:'/api/vms/start',delete:'/api/vms/destroy'};try{const r=await fetch(API+ep[action],{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vmId:vm.id,vmName:vm.name})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');if(action==='delete'){allVms=allVms.filter(v=>v.id!==vm.id);toast('"'+vm.name+'" deleted','ok');addNotif('🗑️','VM deleted','"'+vm.name+'" removed.');}else{vm.status=action==='stop'?'stopped':'running';vm.lastActive=Date.now();vm.cpu_usage=action==='stop'?0:Math.floor(Math.random()*30)+5;toast('"'+vm.name+'" '+action+'ped','ok');addNotif(action==='stop'?'⏹️':'▶️','VM '+(action==='stop'?'stopped':'started'),'"'+vm.name+'".');}save();renderAll();}catch(e){if(action==='delete'){setTimeout(()=>{allVms=allVms.filter(v=>v.id!==vm.id);save();renderAll();toast('"'+vm.name+'" removed (demo)','ok');},1500);}else{vm.status=action==='stop'?'stopped':'running';vm.lastActive=Date.now();vm.cpu_usage=action==='stop'?0:Math.floor(Math.random()*30)+5;save();renderAll();toast('"'+vm.name+'" '+action+'ped (demo)','ok');}}}
+function confirmDelete(vmId){const vm=allVms.find(v=>v.id==vmId);if(!vm)return;if(!confirm('Delete VM "'+vm.name+'"?\n\nThis will permanently remove it from Proxmox.'))return;vmAction('delete',vm);}
+async function admAction(action,vmId){const vm=allVms.find(v=>v.id==vmId);if(!vm)return;if(action==='delete'&&!confirm('Force delete "'+vm.name+'"?'))return;await vmAction(action,vm);renderAdmin();}
+function statTick(){if(!cur)return;const running=myVms().filter(v=>v.status==='running');running.forEach(vm=>{vm.cpu_usage=Math.min(100,Math.max(1,(vm.cpu_usage||10)+(Math.random()*8-4)));vm.bw_used=(vm.bw_used||0)+Math.random()*0.15;if(Date.now()-vm.lastActive>300000&&!idleAlerted[vm.id]){idleAlerted[vm.id]=true;document.getElementById('idleWarn').style.display='flex';addNotif('⚠️','Idle VM','"'+vm.name+'" idle 5+ min.');}});if(!running.length)document.getElementById('idleWarn').style.display='none';const avgCpu=running.length?Math.round(running.reduce((a,v)=>a+v.cpu_usage,0)/running.length):0;cpuHist.push(avgCpu);cpuHist.shift();vmHist.push(running.length);vmHist.shift();save();updateStats();}
+function updateStats(){if(!cur)return;const running=myVms().filter(v=>v.status==='running'),prov=myVms().filter(v=>v.status==='provisioning');const avgCpu=running.length?Math.round(running.reduce((a,v)=>a+v.cpu_usage,0)/running.length):0;const totBw=myVms().reduce((a,v)=>a+(v.bw_used||0),0);const pl=PLANS[cur.plan]||{price:0,label:'None',bw:0};document.getElementById('ov-active').textContent=running.length+(prov.length?' (+'+prov.length+' prov.)':'');document.getElementById('ov-cpu').textContent=avgCpu+'%';document.getElementById('ov-bw').textContent=totBw.toFixed(1)+' GB';document.getElementById('ov-bw-sub').textContent='of '+(pl.bw>=999999?'Unlimited':pl.bw/1024+' TB');document.getElementById('ov-cost').textContent=pl.price+' TND';document.getElementById('ov-plan-lbl').textContent=pl.label+' plan';document.getElementById('bw-fill').style.width=(pl.bw>=999999?5:Math.min(100,totBw/(pl.bw/1024)*100))+'%';document.getElementById('ov-title').textContent='Overview';document.getElementById('ov-sub').textContent='Welcome back, '+cur.name;miniChart('chart-cpu',cpuHist,'var(--success)');miniChart('chart-vms',vmHist,'var(--blue)');}
+function miniChart(id,data,color){const el=document.getElementById(id);if(!el)return;const mx=Math.max(...data,1);el.innerHTML=data.map(v=>`<div class="m-bar" style="height:${Math.max(4,Math.round(v/mx*100))}%;background:${color};opacity:.5"></div>`).join('');}
+function renderAll(){if(!cur)return;updateStats();renderVms();renderBilling();renderAdmin();const gate=!hasPlan();document.getElementById('subGate').style.display=gate?'block':'none';document.getElementById('depForm').style.display=gate?'none':'block';}
+function sBadge(s){const m={running:['sb-run','● Running'],provisioning:['sb-prov','⏳ Provisioning'],failed:['sb-fail','✗ Failed'],stopped:['sb-stop','■ Stopped'],expired:['sb-exp','⌛ Expired'],deleting:['sb-del','🗑 Deleting']};const[cls,lbl]=m[s]||['sb-stop',s];return`<span class="sb2 ${cls}">${lbl}</span>`;}
+function vmRows(list,showOwner=false){const now=new Date();return list.map(vm=>{const dL=Math.max(0,Math.ceil((new Date(vm.expiresAt)-now)/86400000));const pct=Math.min(100,Math.round((1-dL/30)*100));const fc=dL>7?'var(--success)':dL>2?'var(--warn)':'var(--danger)';const isP=vm.status==='provisioning'||vm.status==='failed';const actions=isP?`<button class="btn btn-danger btn-xs" onclick="confirmDelete(${vm.id})">Delete</button>`:vm.status==='running'?`<button class="btn btn-warn btn-xs" onclick="vmAction('stop',allVms.find(v=>v.id==${vm.id}))">Stop</button> <button class="btn btn-danger btn-xs" onclick="confirmDelete(${vm.id})">Delete</button>`:vm.status==='stopped'?`<button class="btn btn-success btn-xs" onclick="vmAction('start',allVms.find(v=>v.id==${vm.id}))">Start</button> <button class="btn btn-danger btn-xs" onclick="confirmDelete(${vm.id})">Delete</button>`:`<button class="btn btn-danger btn-xs" onclick="confirmDelete(${vm.id})">Delete</button>`;const ownerCol=showOwner?`<td style="color:var(--muted);font-size:.78rem">${vm.userName||vm.userEmail}</td>`:'';return`<tr><td><b style="font-size:.85rem;font-family:var(--font-display)">${vm.name}</b><br/><span style="font-size:.72rem;color:var(--muted)">${vm.ip||'Pending IP...'}</span></td>${ownerCol}<td style="color:var(--muted);font-size:.8rem">${vm.cpu}vCPU·${vm.ram}GB·${vm.disk}GB</td><td style="color:var(--muted);font-size:.78rem">${vm.os}</td><td>${sBadge(vm.status)}</td><td style="color:var(--blue);font-size:.8rem;font-family:var(--font-display)">${vm.status==='running'?Math.round(vm.cpu_usage)+'%':'—'}</td><td><div class="exp-row"><span>${dL}d</span><div class="exp-bar"><div class="exp-fill" style="width:${pct}%;background:${fc}"></div></div></div></td><td style="white-space:nowrap">${actions}</td></tr>`;}).join('');}
+function vmTable(rows,showOwner=false){if(!rows.trim())return'<div class="empty"><div class="empty-ico">🖥️</div><p style="margin-bottom:.85rem">No VMs yet.</p><button class="btn btn-primary btn-sm" onclick="showTab(\'dep\',document.getElementById(\'si-dep\'))">Deploy your first VM →</button></div>';const ownerTh=showOwner?'<th>Owner</th>':'';return`<table class="vm-table"><thead><tr><th>Name</th>${ownerTh}<th>Specs</th><th>OS</th><th>Status</th><th>CPU</th><th>Expires</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;}
+function renderVms(){const vms=myVms();const r=vmRows([...vms].reverse());const r3=vmRows([...vms].reverse().slice(0,3));document.getElementById('ov-vm-tbl').innerHTML=vmTable(r3);document.getElementById('full-vm-tbl').innerHTML=vmTable(r);}
+function renderBilling(){if(!cur)return;const pl=PLANS[cur.plan]||{price:0,label:'None',vms:0};document.getElementById('b-plan').textContent=pl.label;document.getElementById('b-price').textContent=pl.price+' TND/month';document.getElementById('b-limit').textContent=pl.vms>=999?'Unlimited':pl.vms+' VMs';const active=myVms().filter(v=>!['expired','failed'].includes(v.status));document.getElementById('b-items').innerHTML=active.length?active.map(v=>`<div class="bill-row"><span>${v.name} (${v.plan})</span><span>${PLANS[v.plan]?.price||0} TND</span></div>`).join(''):'<div class="bill-row"><span>No active VMs</span><span>0 TND</span></div>';document.getElementById('b-total').textContent=pl.price+' TND';}
+function renderAdmin(){if(!cur||cur.role!=='admin')return;const running=allVms.filter(v=>v.status==='running').length;const rev=users.reduce((a,u)=>(PLANS[u.plan]?.price||0)+a,0);document.getElementById('adm-users').textContent=users.length;document.getElementById('adm-vms').textContent=allVms.length;document.getElementById('adm-rev').textContent=rev+' TND';document.getElementById('adm-run').textContent=running;document.getElementById('adm-vm-count').textContent=allVms.length+' total';document.getElementById('adm-vm-tbl').innerHTML=vmTable(vmRows(allVms,true),true);document.getElementById('adm-user-tbl').innerHTML=users.map(u=>`<tr><td><b style="font-size:.85rem;font-family:var(--font-display)">${u.name}</b></td><td style="color:var(--muted);font-size:.8rem">${u.email}</td><td style="color:var(--blue);font-size:.8rem">${u.plan||'—'}</td><td>${allVms.filter(v=>v.uid===u.id).length}</td><td style="color:var(--muted);font-size:.78rem">${new Date(u.joined).toLocaleDateString()}</td><td>${u.role==='admin'?'<span style="color:var(--purple);font-size:.78rem;font-family:var(--font-display)">Admin</span>':'User'}</td></tr>`).join('');const subs=users.filter(u=>u.plan&&new Date(u.planExpiry)>new Date()).length;const avg=subs?Math.round(rev/subs):0;document.getElementById('adm-rev2').textContent=rev+' TND';document.getElementById('adm-subs').textContent=subs;document.getElementById('adm-avg').textContent=avg+' TND';const counts={basic:0,pro:0,enterprise:0};users.forEach(u=>{if(counts[u.plan]!==undefined)counts[u.plan]++;});document.getElementById('adm-rev-breakdown').innerHTML=Object.entries(counts).map(([p,c])=>`<div class="bill-row"><span>${p.charAt(0).toUpperCase()+p.slice(1)}</span><span>${c} users · ${c*(PLANS[p]?.price||0)} TND/mo</span></div>`).join('');}
+function addNotif(icon,title,text){notifs.unshift({icon,title,text,time:new Date().toISOString()});if(notifs.length>25)notifs.pop();save();renderNotifs();document.getElementById('notifBadge').classList.add('show');}
+function renderNotifs(){const el=document.getElementById('notifList');if(!notifs.length){el.innerHTML='<div class="notif-empty">No notifications</div>';return;}el.innerHTML=notifs.map(n=>`<div class="notif-item"><div class="ni-icon">${n.icon}</div><div class="ni-body"><b>${n.title}</b>${n.text}</div><div class="ni-time">${timeSince(n.time)}</div></div>`).join('');}
+function clearNotifs(){notifs=[];save();renderNotifs();document.getElementById('notifBadge').classList.remove('show');}
+function toggleNotif(){document.getElementById('notifDD').classList.toggle('open');document.getElementById('notifBadge').classList.remove('show');}
+function timeSince(iso){const s=Math.floor((Date.now()-new Date(iso))/1000);if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';return Math.floor(s/3600)+'h ago';}
+document.addEventListener('click',e=>{if(!e.target.closest('#notifBell')&&!e.target.closest('#notifDD'))document.getElementById('notifDD').classList.remove('open');});
+function toast(msg,type='info'){const icons={ok:'✅',err:'❌',warn:'⚠️',info:'ℹ️'};const el=document.createElement('div');el.className='toast '+(type==='err'?'err':type==='ok'?'ok':type==='warn'?'warn':'');el.innerHTML=`<span style="font-size:.85rem">${icons[type]||'ℹ️'}</span><span>${msg}</span>`;document.getElementById('toastWrap').appendChild(el);setTimeout(()=>el.remove(),4500);}
+async function checkApi(){try{const r=await fetch(API+'/health',{signal:AbortSignal.timeout(3000)});const ok=r.ok;const dot=document.getElementById('api-dot-infra');const lbl=document.getElementById('api-lbl-infra');if(dot)dot.style.background=ok?'var(--success)':'var(--danger)';if(lbl){lbl.textContent=ok?'Online':'Offline';lbl.style.color=ok?'var(--success)':'var(--danger)';}}catch{const dot=document.getElementById('api-dot-infra');const lbl=document.getElementById('api-lbl-infra');if(dot)dot.style.background='var(--danger)';if(lbl){lbl.textContent='Offline';lbl.style.color='var(--danger)';}}}
+async function checkAndShowApi(){await checkApi();toast('API: '+document.getElementById('api-lbl-infra')?.textContent,'ok');}
 setInterval(checkApi,30000);
-
-// ══════════════════════════════════════════════
-// UI HELPERS
-// ══════════════════════════════════════════════
-function showTab(id,el){
-  ['overview','machines','deploy','billing','settings','admin'].forEach(t=>{
-    const el2=document.getElementById('tab-'+t); if(el2) el2.style.display='none';
-  });
-  const tab=document.getElementById('tab-'+id); if(tab) tab.style.display='block';
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(el) el.classList.add('active');
-  if(id==='deploy') renderAll();
-}
-function showAdminTab(id,el){
-  ['all-vms','all-users','all-billing'].forEach(t=>{
-    const e=document.getElementById('atab-'+t); if(e) e.style.display='none';
-  });
-  const t=document.getElementById('atab-'+id); if(t) t.style.display='block';
-  document.querySelectorAll('.admin-tab').forEach(x=>x.classList.remove('active'));
-  if(el) el.classList.add('active');
-}
-function goHome(){
-  if(currentUser){showTab('overview',document.getElementById('si-overview'));return;}
-  document.getElementById('dashPage').classList.remove('active');
-  document.getElementById('landingPage').classList.add('active');
-}
-function scrollToSection(id){
-  if(!document.getElementById('landingPage').classList.contains('active')){
-    goHome(); setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth'}),100);
-  } else document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
-}
-function planChanged(){
-  const p=document.getElementById('vmPlan').value;
-  document.getElementById('customSpecs').style.display=p==='custom'?'block':'none';
-  const costs={basic:29,pro:89,enterprise:249};
-  document.getElementById('dCost').textContent=(costs[p]||calcCustomCost())+' TND/mo';
-}
-function calcCustomCost(){return Math.round(parseInt(document.getElementById('dCpu').value)*4+parseInt(document.getElementById('dRam').value)*1.8+parseInt(document.getElementById('dDisk').value)*0.05);}
-function dCalc(){document.getElementById('dCpuV').textContent=document.getElementById('dCpu').value;document.getElementById('dRamV').textContent=document.getElementById('dRam').value;document.getElementById('dDiskV').textContent=document.getElementById('dDisk').value;document.getElementById('dCost').textContent=calcCustomCost()+' TND/mo';}
-function calcPrice(){
-  const cpu=+document.getElementById('bCpu').value,ram=+document.getElementById('bRam').value,disk=+document.getElementById('bDisk').value;
-  document.getElementById('bCpuVal').textContent=cpu+' core'+(cpu>1?'s':'');
-  document.getElementById('bRamVal').textContent=ram+' GB';
-  document.getElementById('bDiskVal').textContent=disk+' GB';
-  document.getElementById('bPrice').innerHTML=Math.round(cpu*4+ram*1.8+disk*0.05)+' TND<small style="font-size:.9rem;color:var(--muted)">/mo</small>';
-}
-function selOs(el){document.querySelectorAll('.os-opt').forEach(o=>o.classList.remove('selected'));el.classList.add('selected');}
-function saveSettings(){
-  currentUser.name=document.getElementById('setName').value.trim();
-  const u=users.find(x=>x.id===currentUser.id); if(u) u.name=currentUser.name;
-  saveState(); toast('Settings saved!','success');
-}
-function saveApiUrl(){
-  apiBase=document.getElementById('apiUrlInput').value.trim();
-  localStorage.setItem('voltcore_api',apiBase);
-  checkApi(); toast('API URL saved!','success');
-}
-
-// Init
-calcPrice(); checkApi();
+function saveProfile(){const name=document.getElementById('setName').value.trim();if(!name)return toast('Name cannot be empty','err');cur.name=name;const u=users.find(x=>x.id===cur.id);if(u)u.name=name;save();document.getElementById('sbAvatar').textContent=name.charAt(0).toUpperCase();document.getElementById('sbName').textContent=name;document.getElementById('navUser').textContent=name;toast('Profile saved!','ok');}
+function changePass(){const cur2=document.getElementById('setCurPass').value,nw=document.getElementById('setNewPass').value,cf=document.getElementById('setConfPass').value;if(!cur2||!nw||!cf)return toast('Fill in all password fields','err');const u=users.find(x=>x.id===cur.id);if(!u||u.pass!==cur2)return toast('Current password is incorrect','err');if(nw.length<6)return toast('New password must be at least 6 characters','err');if(nw!==cf)return toast('Passwords do not match','err');u.pass=nw;cur.pass=nw;save();document.getElementById('setCurPass').value='';document.getElementById('setNewPass').value='';document.getElementById('setConfPass').value='';toast('Password changed!','ok');}
+function showTab(id,el){['ov','vms','dep','bill','set','adm'].forEach(t=>{const e=document.getElementById('tab-'+t);if(e)e.style.display='none';});const t=document.getElementById('tab-'+id);if(t)t.style.display='block';document.querySelectorAll('.sb-item').forEach(n=>n.classList.remove('active'));if(el)el.classList.add('active');if(['ov','vms','dep','adm'].includes(id))renderAll();if(id==='bill')renderBilling();}
+function showATab(id,el){['vms','users','infra','billing'].forEach(t=>{const e=document.getElementById('atab-'+t);if(e)e.style.display='none';});const t=document.getElementById('atab-'+id);if(t)t.style.display='block';document.querySelectorAll('.atab').forEach(x=>x.classList.remove('active'));if(el)el.classList.add('active');}
+function goHome(){if(cur){showTab('ov',document.getElementById('si-ov'));return;}document.getElementById('dashPage').classList.remove('active');document.getElementById('landingPage').classList.add('active');if(window._restartRays)window._restartRays();}
+function scrollTo2(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth'});}
+function planChange(){const p=document.getElementById('vmPlan').value;document.getElementById('customSp').style.display=p==='custom'?'block':'none';const costs={basic:29,pro:89,enterprise:249};document.getElementById('dCost').textContent=(costs[p]||calcC())+' TND/mo';}
+function calcC(){return Math.round(+document.getElementById('dCpu').value*4+ +document.getElementById('dRam').value*1.8+ +document.getElementById('dDisk').value*0.05);}
+function dCalc(){document.getElementById('dCpuV').textContent=document.getElementById('dCpu').value;document.getElementById('dRamV').textContent=document.getElementById('dRam').value;document.getElementById('dDiskV').textContent=document.getElementById('dDisk').value;document.getElementById('dCost').textContent=calcC()+' TND/mo';}
+function calcPrice(){const cpu=+document.getElementById('bCpu').value,ram=+document.getElementById('bRam').value,disk=+document.getElementById('bDisk').value;document.getElementById('bCpuV').textContent=cpu+' core'+(cpu>1?'s':'');document.getElementById('bRamV').textContent=ram+' GB';document.getElementById('bDiskV').textContent=disk+' GB';document.getElementById('bPrice').innerHTML=Math.round(cpu*4+ram*1.8+disk*0.05)+' TND<small style="font-size:.85rem;color:var(--muted)">/mo</small>';}
+function selOs(el){document.querySelectorAll('.os-chip').forEach(o=>o.classList.remove('on'));el.classList.add('on');}
+(function(){const id=sessionStorage.getItem('vc_cur_id');if(id){const u=users.find(x=>x.id===id);if(u){cur=u;setTimeout(enterDash,50);}}})();
+calcPrice();renderNotifs();
 </script>
 </body>
 </html>
