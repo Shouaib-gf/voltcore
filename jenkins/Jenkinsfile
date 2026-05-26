@@ -1,18 +1,18 @@
 pipeline {
   agent any
   parameters {
-    string(name: 'VM_NAME', defaultValue: '')
-    string(name: 'VM_ID', defaultValue: '')
-    string(name: 'CLIENT_ID', defaultValue: '')
-    string(name: 'CLIENT_EMAIL', defaultValue: '')
+    string(name: 'VM_NAME',           defaultValue: '')
+    string(name: 'VM_ID',             defaultValue: '')
+    string(name: 'CLIENT_ID',         defaultValue: '')
+    string(name: 'CLIENT_EMAIL',      defaultValue: '')
     string(name: 'CLIENT_SSH_PUBKEY', defaultValue: '')
     string(name: 'TERMINAL_SSH_PUBKEY', defaultValue: '')
-    string(name: 'PLAN', defaultValue: 'basic')
-    string(name: 'OS', defaultValue: 'ubuntu-22.04')
-    string(name: 'CPU_CORES', defaultValue: '2')
-    string(name: 'RAM_MB', defaultValue: '2048')
-    string(name: 'DISK_GB', defaultValue: '40')
-    string(name: 'ACTION', defaultValue: 'apply')
+    string(name: 'PLAN',              defaultValue: 'basic')
+    string(name: 'OS',                defaultValue: 'ubuntu-22.04')
+    string(name: 'CPU_CORES',         defaultValue: '2')
+    string(name: 'RAM_MB',            defaultValue: '2048')
+    string(name: 'DISK_GB',           defaultValue: '40')
+    string(name: 'ACTION',            defaultValue: 'apply')
   }
   stages {
     stage('Validate') {
@@ -46,8 +46,8 @@ pipeline {
       steps {
         withCredentials([
           string(credentialsId: 'proxmox-api-token', variable: 'TF_VAR_proxmox_api_token'),
-          string(credentialsId: 'minio-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-          string(credentialsId: 'minio-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+          string(credentialsId: 'minio-access-key',  variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'minio-secret-key',  variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh '''
             cd /opt/voltcore/terraform
@@ -56,7 +56,7 @@ pipeline {
             DESTROY_FLAG=""
             if [ "$ACTION" = "destroy" ]; then DESTROY_FLAG="-destroy"; fi
             terraform plan $DESTROY_FLAG -out=tfplan \
-              -var "proxmox_api_url=https://192.168.0.143:8006" \
+              -var "proxmox_api_url=https://192.168.1.152:8006" \
               -var "vm_name=$VM_NAME" \
               -var "vm_id=$VM_ID" \
               -var "client_id=$CLIENT_ID" \
@@ -76,8 +76,8 @@ pipeline {
       steps {
         withCredentials([
           string(credentialsId: 'proxmox-api-token', variable: 'TF_VAR_proxmox_api_token'),
-          string(credentialsId: 'minio-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-          string(credentialsId: 'minio-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')
+          string(credentialsId: 'minio-access-key',  variable: 'AWS_ACCESS_KEY_ID'),
+          string(credentialsId: 'minio-secret-key',  variable: 'AWS_SECRET_ACCESS_KEY')
         ]) {
           sh '''
             cd /opt/voltcore/terraform
