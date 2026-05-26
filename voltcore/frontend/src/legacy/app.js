@@ -1,4 +1,4 @@
-const API = localStorage.getItem("vc_api") || "http://192.168.0.143:3000";
+const API = localStorage.getItem("vc_api") || "http://192.168.1.152:3000";
 const SESSION_KEY = "vc_session";
 const PREFS_KEY = "vc_preferences";
 const PLAN_LIMITS = { Starter: 1, Professional: 5, Enterprise: 99 };

@@ -3,7 +3,7 @@ set -e
 
 JENKINS_USER="${JENKINS_USER:-your-jenkins-user}"
 JENKINS_TOKEN="${JENKINS_TOKEN:-your-jenkins-api-token}"
-JENKINS_URL="${JENKINS_URL:-http://192.168.0.143:8080}"
+JENKINS_URL="${JENKINS_URL:-http://192.168.1.152:8080}"
 JOB_NAME="${JENKINS_JOB:-voltcore-vm-provision}"
 
 # Get crumb

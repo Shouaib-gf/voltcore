@@ -9,7 +9,6 @@ services:
       - "27017:27017"
     volumes:
       - /opt/voltcore/mongodb:/data/db
-
   minio:
     image: minio/minio:latest
     container_name: voltcore-minio
@@ -39,7 +38,7 @@ services:
       - "50001:50000"
     volumes:
       - /opt/voltcore/jenkins:/var/jenkins_home
-      - /opt/voltcore/terraform:/opt/voltcore/terraform
+      - /opt/voltcore/voltcore/terraform:/opt/voltcore/terraform
     environment:
       - JAVA_OPTS=-Xmx512m -Xms256m -Djenkins.install.runSetupWizard=false
     user: root

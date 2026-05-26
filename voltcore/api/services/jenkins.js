@@ -2,7 +2,7 @@
 const http = require('http');
 const https = require('https');
 
-const JENKINS_URL   = process.env.JENKINS_URL  || 'http://192.168.0.143:8080';
+const JENKINS_URL   = process.env.JENKINS_URL  || 'http://192.168.1.152:8080';
 const JENKINS_USER  = process.env.JENKINS_USER || 'your-jenkins-user';
 const JENKINS_TOKEN = process.env.JENKINS_TOKEN || 'your-jenkins-api-token';
 const JOB_NAME      = process.env.JENKINS_JOB  || 'voltcore-vm-provision';
@@ -40,16 +40,8 @@ function jenkinsFetch(path, opts = {}) {
 
 // ── Get Jenkins crumb (CSRF token) ───────────────────────────
 async function getCrumb() {
-  const r = await jenkinsFetch('/crumbIssuer/api/json');
-  if (r.status === 404) return null;
-  if (r.status >= 400) throw new Error(`Jenkins crumb failed: HTTP ${r.status} ${r.body.slice(0, 180)}`);
-  const d = JSON.parse(r.body);
-  const cookie = Array.isArray(r.headers['set-cookie'])
-    ? r.headers['set-cookie'].map(c => c.split(';')[0]).join('; ')
-    : '';
-  return { field: d.crumbRequestField, value: d.crumb, cookie };
+  return null;
 }
-
 // ── Trigger Jenkins build ────────────────────────────────────
 async function triggerBuild(params) {
   const crumb = await getCrumb();
@@ -152,7 +144,7 @@ async function extractIpFromLog(buildNumber) {
       const all = [...log.matchAll(/192\.168\.\d+\.\d+/g)];
       const filtered = all
         .map(m => m[0])
-        .filter(ip => ip !== '192.168.0.143' && ip !== '192.168.1.126');
+        .filter(ip => ip !== '192.168.1.152' && ip !== '192.168.1.126');
 
       if (filtered.length) {
         return filtered[filtered.length - 1];

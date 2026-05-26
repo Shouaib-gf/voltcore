@@ -37,7 +37,7 @@ router.get('/health', authRequired, adminRequired, async (req, res) => {
   const [proxmoxResult, jenkinsResult, minioResult, vmCount, userCount] = await Promise.allSettled([
     proxmox.listVms(),
     jenkins.getJobInfo(),
-    probeUrl(process.env.MINIO_HEALTH_URL || 'http://192.168.0.143:9000/minio/health/live'),
+    probeUrl(process.env.MINIO_HEALTH_URL || 'http://192.168.1.152:9000/minio/health/live'),
     Vm.countDocuments(),
     User.countDocuments()
   ]);

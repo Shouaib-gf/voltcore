@@ -1,6 +1,6 @@
 const https = require('https');
 
-const PROXMOX_URL   = process.env.PROXMOX_URL   || 'https://192.168.0.143:8006';
+const PROXMOX_URL   = process.env.PROXMOX_URL   || 'https://192.168.1.152:8006';
 const PROXMOX_TOKEN = process.env.PROXMOX_TOKEN || ''; // format: user@realm!tokenid=secret
 const PROXMOX_NODE  = process.env.PROXMOX_NODE  || 'pve';
 const PROXMOX_DEBUG = process.env.PROXMOX_DEBUG === 'true';
@@ -175,11 +175,11 @@ async function getVmAgentIp(vmId) {
         && ip
         && !ip.startsWith('127.')
         && !ip.startsWith('169.254.')
-        && ip !== '192.168.0.1';
+        && ip !== '192.168.1.1';
       if (usable) candidates.push(ip);
     }
   }
-  return candidates.find(ip => ip.startsWith('192.168.0.')) || candidates[0] || null;
+    return candidates.find(ip => ip.startsWith('192.168.1.')) || candidates[0] || null;
 }
 
 // ─────────────────────────────────────────────

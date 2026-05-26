@@ -9,7 +9,7 @@ terraform {
     bucket                      = "voltcore-tfstate"
     key                         = "vms/default.tfstate"
     region                      = "us-east-1"
-    endpoints                   = { s3 = "http://192.168.0.143:9000" }
+    endpoints                   = { s3 = "http://192.168.1.152:9000" }
     skip_credentials_validation = true
     skip_metadata_api_check     = true
     skip_requesting_account_id  = true
@@ -68,8 +68,8 @@ resource "proxmox_virtual_environment_vm" "client_vm" {
   initialization {
     ip_config {
       ipv4 {
-        address = "192.168.0.${100 + (var.vm_id % 100)}/24"
-        gateway = "192.168.0.1"
+        address = "192.168.1.${100 + (var.vm_id % 100)}/24"
+        gateway = "192.168.1.1"
       }
     }
     user_account {

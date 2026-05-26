@@ -24,7 +24,7 @@ function clampNumber(value, min, max, fallback) {
 }
 
 function vmIpFromId(vmId) {
-  return `192.168.0.${100 + (Number(vmId) % 100)}`;
+    return `192.168.1.${100 + (Number(vmId) % 100)}`;
 }
 
 async function resolveVmIp(vm, statusIp = '') {
